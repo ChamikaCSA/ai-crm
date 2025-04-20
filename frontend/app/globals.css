@@ -1,26 +1,312 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Base colors */
+  --background: #fdf4ff;
+  --foreground: #2e1065;
+
+  /* Primary colors - Deep violet */
+  --primary: #6b21a8;
+  --primary-foreground: #ffffff;
+  --primary-hover: #581c87;
+  --primary-active: #4c1d95;
+
+  /* Secondary colors - Emerald */
+  --secondary: #047857;
+  --secondary-foreground: #ffffff;
+  --secondary-hover: #065f46;
+  --secondary-active: #064e3b;
+
+  /* Semantic colors */
+  --success: #059669;
+  --success-foreground: #ffffff;
+  --warning: #b45309;
+  --warning-foreground: #ffffff;
+  --error: #b91c1c;
+  --error-foreground: #ffffff;
+  --info: #7e22ce;
+  --info-foreground: #ffffff;
+
+  /* Text colors */
+  --text-primary: #2e1065;
+  --text-secondary: #4b5563;
+  --text-tertiary: #6b7280;
+
+  /* Border colors */
+  --border: #e9d5ff;
+  --border-hover: #d8b4fe;
+
+  /* Accent colors */
+  --accent: #f3e8ff;
+  --accent-foreground: #2e1065;
+
+  /* Special colors */
+  --highlight: #6b21a8;
+  --highlight-foreground: #ffffff;
+  --muted: #9ca3af;
+  --muted-foreground: #ffffff;
+
+  /* Status colors */
+  --status-new: #6b21a8;
+  --status-in-progress: #b45309;
+  --status-completed: #059669;
+  --status-blocked: #b91c1c;
+  --status-pending: #7e22ce;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --background: #1a1b26;
+  --foreground: #e0e0e0;
+
+  /* Primary colors - Muted violet */
+  --primary: #7c3aed;
+  --primary-foreground: #ffffff;
+  --primary-hover: #6d28d9;
+  --primary-active: #5b21b6;
+
+  /* Secondary colors - Muted emerald */
+  --secondary: #0d9488;
+  --secondary-foreground: #1a1b26;
+  --secondary-hover: #0f766e;
+  --secondary-active: #115e59;
+
+  /* Semantic colors */
+  --success: #059669;
+  --success-foreground: #1a1b26;
+  --warning: #b45309;
+  --warning-foreground: #1a1b26;
+  --error: #dc2626;
+  --error-foreground: #ffffff;
+  --info: #7c3aed;
+  --info-foreground: #1a1b26;
+
+  /* Text colors */
+  --text-primary: #e0e0e0;
+  --text-secondary: #a1a1aa;
+  --text-tertiary: #71717a;
+
+  /* Border colors */
+  --border: #2d2d3a;
+  --border-hover: #3d3d4a;
+
+  /* Accent colors */
+  --accent: #2d2d3a;
+  --accent-foreground: #e0e0e0;
+
+  /* Special colors */
+  --highlight: #7c3aed;
+  --highlight-foreground: #1a1b26;
+  --muted: #71717a;
+  --muted-foreground: #1a1b26;
+
+  /* Status colors */
+  --status-new: #7c3aed;
+  --status-in-progress: #b45309;
+  --status-completed: #059669;
+  --status-blocked: #dc2626;
+  --status-pending: #7c3aed;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Utility Classes */
+.shadow-sm {
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+.shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+.rounded-sm {
+  border-radius: 0.125rem;
+}
+
+.rounded {
+  border-radius: 0.25rem;
+}
+
+.rounded-md {
+  border-radius: 0.375rem;
+}
+
+.rounded-lg {
+  border-radius: 0.5rem;
+}
+
+.rounded-xl {
+  border-radius: 0.75rem;
+}
+
+.rounded-2xl {
+  border-radius: 1rem;
+}
+
+/* Component Styles */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.btn-secondary:hover {
+  background-color: var(--secondary-hover);
+}
+
+.card {
+  background-color: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 0.375rem;
+  background-color: var(--background);
+  color: var(--text-primary);
+  transition: border-color 0.2s ease-in-out;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Status Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.badge-new {
+  background-color: var(--status-new);
+  color: white;
+}
+
+.badge-in-progress {
+  background-color: var(--status-in-progress);
+  color: white;
+}
+
+.badge-completed {
+  background-color: var(--status-completed);
+  color: white;
+}
+
+.badge-blocked {
+  background-color: var(--status-blocked);
+  color: white;
+}
+
+.badge-pending {
+  background-color: var(--status-pending);
+  color: white;
+}
+
+/* Table Styles */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table th {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 600;
+  text-align: left;
+  padding: 0.75rem 1rem;
+}
+
+.table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.table tr:hover {
+  background-color: var(--accent);
+}
+
+/* Responsive Utilities */
+@media (max-width: 640px) {
+  .sm\:hidden {
+    display: none;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@media (min-width: 768px) {
+  .md\:flex {
+    display: flex;
+  }
+}
+
+@media (min-width: 1024px) {
+  .lg\:grid {
+    display: grid;
+  }
+}
+
+/* Animation Utilities */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
