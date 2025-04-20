@@ -1,0 +1,20 @@
+# OS specific files
+.DS_Store
+
+# IDE configuration files
+.idea/
+.vscode/
+
+# Log files
+*.log
+
+# Environment variables
+.env*
+!.env.example
+
+# Build outputs (if any at root)
+/build/
+/dist/
+
+# Dependency directories (if any at root)
+/node_modules/
