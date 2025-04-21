@@ -11,10 +11,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { login } = useAuth();
   const [error, setError] = useState<string | React.ReactNode>('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,15 +40,7 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     try {
-      const data = await api.post<{ access_token: string; user: any }>('/api/auth/login', {
-        email,
-        password,
-      });
-
-      if (!data.access_token) {
-        throw new Error('No access token received from server');
-      }
-
+      await login(email, password);
       const from = searchParams.get('from');
       router.push(from || '/');
     } catch (error) {

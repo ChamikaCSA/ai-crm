@@ -5,8 +5,9 @@ import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
-import { UsersModule } from './users/users.module';
+import { UserModule } from './user/user.module';
 import { AuditModule } from './audit/audit.module';
+import { CustomerModule } from './customer/customer.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -45,9 +46,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     }),
     PassportModule.register({ defaultStrategy: 'jwt' }),
     AuthModule,
-    UsersModule,
+    UserModule,
     AuditModule,
-  ],
+    CustomerModule  ],
   providers: [
     {
       provide: APP_FILTER,

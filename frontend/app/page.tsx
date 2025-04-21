@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { auth } from '@/lib/auth'
-import { Navigation } from '@/components/Navigation'
+import { Header } from '@/components/Header'
 import { APP_NAME } from '@/strings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,7 +12,7 @@ export default async function LandingPage() {
 
   return (
     <div className="flex-1">
-      <Navigation session={session} />
+      <Header session={session} />
 
       {/* Hero Section */}
       <section className="relative py-32 overflow-hidden">

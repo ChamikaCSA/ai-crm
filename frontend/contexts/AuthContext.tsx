@@ -3,72 +3,69 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api-client'
-
-interface User {
-  id: string
-  email: string
-  firstName: string
-  lastName: string
-  role: string
-}
+import { User, UserRole } from '@/lib/types'
 
 interface AuthContextType {
   user: User | null
-  loading: boolean
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
-  refreshToken: () => Promise<void>
+  refreshUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
-  const refreshToken = async () => {
-    try {
-      const data = await api.get<{ user: User; token: string }>('/api/auth/refresh')
-      setUser(data.user)
-      document.cookie = `token=${data.token}; path=/; max-age=86400`
-    } catch (error) {
-      setUser(null)
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    }
-  }
-
-  const logout = async () => {
-    try {
-      await api.post('/api/auth/logout', {})
-    } finally {
-      setUser(null)
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-      router.push('/auth/login')
-    }
-  }
-
   useEffect(() => {
-    const initAuth = async () => {
+    const checkAuth = async () => {
       try {
-        const data = await api.get<{ user: User }>('/api/auth/me')
-        setUser(data.user)
+        const user = await api.get<User>('/api/auth/me')
+        setUser(user)
       } catch (error) {
         setUser(null)
       } finally {
-        setLoading(false)
+        setIsLoading(false)
       }
     }
-
-    initAuth()
-
-    // Set up token refresh interval
-    const interval = setInterval(refreshToken, 30 * 60 * 1000) // Refresh every 30 minutes
-
-    return () => clearInterval(interval)
+    checkAuth()
   }, [])
 
+  const refreshUser = async () => {
+    try {
+      const user = await api.get<User>('/api/auth/me')
+      setUser(user)
+    } catch (error) {
+      setUser(null)
+    }
+  }
+
+  const login = async (email: string, password: string) => {
+    const { user, access_token, refresh_token } = await api.post<{ user: User; access_token: string; refresh_token: string }>('/api/auth/login', { email, password })
+    setUser(user)
+    document.cookie = `token=${access_token}; path=/; max-age=900` // 15 minutes
+    document.cookie = `refresh_token=${refresh_token}; path=/; max-age=604800` // 7 days
+    router.push('/dashboard')
+  }
+
+  const logout = async () => {
+    await api.post('/api/auth/logout', {})
+    setUser(null)
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+    router.push('/auth/login')
+  }
+
+  // Don't render children until initial auth check is complete
+  if (isLoading) {
+    return null
+  }
+
   return (
-    <AuthContext.Provider value={{ user, loading, logout, refreshToken }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   )

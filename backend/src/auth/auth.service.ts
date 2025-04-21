@@ -2,11 +2,11 @@ import { Injectable, UnauthorizedException, ConflictException, BadRequestExcepti
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { User, UserRole } from '../users/user.schema';
+import { User, UserRole } from '../user/schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
-import { AuditLog, AuditAction } from '../audit/audit.schema';
+import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
 import { EmailService } from '../email/email.service';
 import { PasswordService } from './password.service';
 
@@ -69,8 +69,12 @@ export class AuthService {
       userAgent,
     });
 
+    const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+    const refreshToken = this.jwtService.sign(payload, { expiresIn: '7d' });
+
     return {
-      access_token: this.jwtService.sign(payload),
+      access_token: accessToken,
+      refresh_token: refreshToken,
       user: {
         id: user._id,
         email: user.email,
@@ -78,6 +82,28 @@ export class AuthService {
         isMfaEnabled: user.isMfaEnabled,
       },
     };
+  }
+
+  async refreshToken(refreshToken: string) {
+    try {
+      const payload = this.jwtService.verify(refreshToken);
+      const user = await this.userModel.findById(payload.sub);
+
+      if (!user) {
+        throw new UnauthorizedException('User not found');
+      }
+
+      const newPayload = { email: user.email, sub: user._id, role: user.role };
+      const newAccessToken = this.jwtService.sign(newPayload, { expiresIn: '15m' });
+      const newRefreshToken = this.jwtService.sign(newPayload, { expiresIn: '7d' });
+
+      return {
+        access_token: newAccessToken,
+        refresh_token: newRefreshToken,
+      };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
   }
 
   async generateMfaSecret(userId: string) {

@@ -1,9 +1,12 @@
-import { UserRole } from '../users/user.schema';
+import { UserRole } from '../user/schemas/user.schema';
 
 export enum Permission {
   // Customer permissions
   VIEW_OWN_PROFILE = 'view_own_profile',
   UPDATE_OWN_PROFILE = 'update_own_profile',
+  ACCESS_CHATBOT = 'access_chatbot',
+  VIEW_RECOMMENDATIONS = 'view_recommendations',
+  ACCESS_SUPPORT_PORTAL = 'access_support_portal',
 
   // Sales representative permissions
   VIEW_CUSTOMER_PROFILES = 'view_customer_profiles',
@@ -35,6 +38,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
   [UserRole.CUSTOMER]: [
     Permission.VIEW_OWN_PROFILE,
     Permission.UPDATE_OWN_PROFILE,
+    Permission.ACCESS_CHATBOT,
+    Permission.VIEW_RECOMMENDATIONS,
+    Permission.ACCESS_SUPPORT_PORTAL,
   ],
 
   [UserRole.SALES_REP]: [

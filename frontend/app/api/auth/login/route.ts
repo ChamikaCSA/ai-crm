@@ -28,7 +28,13 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7, // 1 week
+      maxAge: 60 * 15, // 15 minutes
+    })
+    cookieStore.set('refresh_token', data.data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
     const allCookies = cookieStore.getAll();

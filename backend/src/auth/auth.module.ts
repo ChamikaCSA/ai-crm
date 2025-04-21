@@ -7,9 +7,9 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import { User, UserSchema } from '../users/user.schema';
-import { AuditLog, AuditLogSchema } from '../audit/audit.schema';
-import { UsersModule } from '../users/users.module';
+import { User, UserSchema } from '../user/schemas/user.schema';
+import { AuditLog, AuditLogSchema } from '../audit/schemas/audit.schema';
+import { UserModule } from '../user/user.module';
 import { EmailModule } from '../email/email.module';
 import { PasswordService } from './password.service';
 
@@ -32,7 +32,7 @@ import { PasswordService } from './password.service';
       },
       inject: [ConfigService],
     }),
-    UsersModule,
+    UserModule,
     EmailModule,
   ],
   controllers: [AuthController],

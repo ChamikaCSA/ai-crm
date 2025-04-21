@@ -10,6 +10,12 @@ export enum UserRole {
   ADMIN = 'admin'
 }
 
+export interface Preference {
+  category: string;
+  value: string;
+  score: number;
+}
+
 @Schema({ timestamps: true })
 export class User extends Document {
   @Prop({ required: true })
@@ -53,6 +59,15 @@ export class User extends Document {
 
   @Prop()
   lastLoginAt: Date;
+
+  @Prop({ type: [{ category: String, value: String, score: Number }], default: [] })
+  preferences: Preference[];
+
+  @Prop({ type: [String], default: [] })
+  interactionHistory: string[];
+
+  @Prop({ type: Object, default: {} })
+  settings: Record<string, any>;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

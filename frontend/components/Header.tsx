@@ -13,14 +13,20 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Sparkles, ArrowRight } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-interface NavigationProps {
+interface HeaderProps {
   session: { user: { id: string; name?: string; email?: string } | null } | null
 }
 
-export function Navigation({ session }: NavigationProps) {
+export function Header({ session }: HeaderProps) {
   const { logout } = useAuth()
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md shadow-sm">
@@ -43,10 +49,14 @@ export function Navigation({ session }: NavigationProps) {
               onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
               className="hover:bg-[var(--accent)] transition-colors group"
             >
-              {theme === 'light' ? (
-                <Sun className="h-[1.2rem] w-[1.2rem] text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors" />
+              {mounted ? (
+                theme === 'light' ? (
+                  <Sun className="h-[1.2rem] w-[1.2rem] text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors" />
+                ) : (
+                  <Moon className="h-[1.2rem] w-[1.2rem] text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors" />
+                )
               ) : (
-                <Moon className="h-[1.2rem] w-[1.2rem] text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors" />
+                <div className="h-[1.2rem] w-[1.2rem]" />
               )}
               <span className="sr-only">Toggle theme</span>
             </Button>

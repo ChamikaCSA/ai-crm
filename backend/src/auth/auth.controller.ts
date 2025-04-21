@@ -1,10 +1,10 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Param, Put } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, Param, Put, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Request } from 'express';
-import { CreateUserDto } from '../users/dto/create-user.dto';
-import { UsersService } from '../users/users.service';
+import { CreateUserDto } from '../user/dto/create-user.dto';
+import { UserService } from '../user/user.service';
 
 interface RequestWithUser extends Request {
   user: {
@@ -37,7 +37,7 @@ class UpdateProfileDto {
 export class AuthController {
   constructor(
     private authService: AuthService,
-    private usersService: UsersService,
+    private userService: UserService,
   ) {}
 
   @Post('register')
@@ -148,7 +148,15 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('me')
   async getCurrentUser(@Req() req: RequestWithUser) {
-    const user = await this.usersService.findOne(req.user.sub);
+    const user = await this.userService.findOne(req.user.sub);
     return { data: { user } };
+  }
+
+  @Post('refresh')
+  async refreshToken(@Body('refresh_token') refreshToken: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
+    return this.authService.refreshToken(refreshToken);
   }
 }

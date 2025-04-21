@@ -1,22 +1,24 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 
-export async function GET() {
+export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies()
-    const token = cookieStore.get('token')?.value
+    const body = await request.json()
+    const { refresh_token } = body
 
-    if (!token) {
+    if (!refresh_token) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
+        { error: 'Refresh token is required' },
+        { status: 400 }
       )
     }
 
     const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/refresh`, {
+      method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ refresh_token }),
     })
 
     if (!response.ok) {
@@ -24,6 +26,22 @@ export async function GET() {
     }
 
     const data = await response.json()
+    const cookieStore = await cookies()
+
+    cookieStore.set('token', data.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 15, // 15 minutes
+    })
+
+    cookieStore.set('refresh_token', data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+
     return NextResponse.json(data)
   } catch (error) {
     console.error('Error refreshing token:', error)

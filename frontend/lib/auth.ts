@@ -45,7 +45,6 @@ export async function auth() {
 
     return { user }
   } catch (error) {
-    console.error('Auth error:', error)
     return { user: null }
   }
 }
