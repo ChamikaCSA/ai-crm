@@ -33,6 +33,21 @@ export class User extends Document {
   @Prop()
   mfaSecret: string;
 
+  @Prop({ default: false })
+  isEmailVerified: boolean;
+
+  @Prop()
+  emailVerificationToken: string;
+
+  @Prop()
+  emailVerificationTokenExpires: Date;
+
+  @Prop()
+  passwordResetToken: string;
+
+  @Prop()
+  passwordResetTokenExpires: Date;
+
   @Prop({ default: true })
   isActive: boolean;
 

@@ -10,6 +10,8 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { User, UserSchema } from '../users/user.schema';
 import { AuditLog, AuditLogSchema } from '../audit/audit.schema';
 import { UsersModule } from '../users/users.module';
+import { EmailModule } from '../email/email.module';
+import { PasswordService } from './password.service';
 
 @Module({
   imports: [
@@ -31,9 +33,10 @@ import { UsersModule } from '../users/users.module';
       inject: [ConfigService],
     }),
     UsersModule,
+    EmailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, PasswordService],
   exports: [AuthService],
 })
 export class AuthModule {}

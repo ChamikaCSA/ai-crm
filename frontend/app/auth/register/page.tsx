@@ -49,11 +49,8 @@ export default function RegisterPage() {
         throw new Error(data.error)
       }
 
-      if (!data.access_token) {
-        throw new Error('Invalid response from server')
-      }
-
-      router.push('/')
+      // Show success message and redirect to login
+      router.push('/auth/login?message=Please check your email to verify your account before logging in')
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message)

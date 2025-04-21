@@ -5,11 +5,15 @@ export enum AuditAction {
   CREATE = 'create',
   UPDATE = 'update',
   DELETE = 'delete',
-  LOGIN = 'login',
-  LOGOUT = 'logout',
-  MFA_ENABLE = 'mfa_enable',
-  MFA_DISABLE = 'mfa_disable',
-  REGISTER = 'register'
+  LOGIN = 'LOGIN',
+  LOGOUT = 'LOGOUT',
+  MFA_ENABLE = 'MFA_ENABLE',
+  MFA_DISABLE = 'MFA_DISABLE',
+  REGISTER = 'REGISTER',
+  PASSWORD_RESET_REQUEST = 'PASSWORD_RESET_REQUEST',
+  PASSWORD_RESET = 'PASSWORD_RESET',
+  PROFILE_UPDATE = 'PROFILE_UPDATE',
+  EMAIL_VERIFICATION = 'email_verification',
 }
 
 @Schema({ timestamps: true })

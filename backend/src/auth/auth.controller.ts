@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Get } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, Param, Put } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -11,6 +11,26 @@ interface RequestWithUser extends Request {
     sub: string;
     [key: string]: any;
   };
+}
+
+class VerifyEmailDto {
+  token: string;
+}
+
+class RequestPasswordResetDto {
+  email: string;
+}
+
+class ResetPasswordDto {
+  token: string;
+  newPassword: string;
+}
+
+class UpdateProfileDto {
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  password?: string;
 }
 
 @Controller('auth')
@@ -37,6 +57,50 @@ export class AuthController {
   async login(@Req() req: RequestWithUser) {
     return this.authService.login(
       req.user,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @Post('verify-email')
+  async verifyEmail(@Body() verifyEmailDto: VerifyEmailDto) {
+    return this.authService.verifyEmail(verifyEmailDto.token);
+  }
+
+  @Post('request-password-reset')
+  async requestPasswordReset(
+    @Body() requestPasswordResetDto: RequestPasswordResetDto,
+    @Req() req: Request,
+  ) {
+    return this.authService.requestPasswordReset(
+      requestPasswordResetDto.email,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @Post('reset-password')
+  async resetPassword(
+    @Body() resetPasswordDto: ResetPasswordDto,
+    @Req() req: Request,
+  ) {
+    return this.authService.resetPassword(
+      resetPasswordDto.token,
+      resetPasswordDto.newPassword,
+      req.ip,
+      req.headers['user-agent'],
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Put('profile')
+  async updateProfile(
+    @Req() req: RequestWithUser,
+    @Body() updateProfileDto: UpdateProfileDto,
+  ) {
+    return this.authService.updateProfile(
+      req.user.sub,
+      updateProfileDto,
       req.ip,
       req.headers['user-agent'],
     );

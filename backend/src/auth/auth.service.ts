@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
@@ -7,6 +7,27 @@ import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 import { AuditLog, AuditAction } from '../audit/audit.schema';
+import { EmailService } from '../email/email.service';
+import { PasswordService } from './password.service';
+
+export interface UserResponse {
+  _id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: UserRole;
+  isMfaEnabled: boolean;
+  mfaSecret?: string;
+  isEmailVerified: boolean;
+  emailVerificationToken?: string;
+  emailVerificationTokenExpires?: Date;
+  passwordResetToken?: string;
+  passwordResetTokenExpires?: Date;
+  isActive: boolean;
+  lastLoginAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 @Injectable()
 export class AuthService {
@@ -14,11 +35,16 @@ export class AuthService {
     @InjectModel('User') private userModel: Model<User>,
     @InjectModel('AuditLog') private auditLogModel: Model<AuditLog>,
     private jwtService: JwtService,
+    private emailService: EmailService,
+    private passwordService: PasswordService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
     const user = await this.userModel.findOne({ email });
     if (user && await bcrypt.compare(password, user.password)) {
+      if (!user.isEmailVerified) {
+        throw new UnauthorizedException('Please verify your email before logging in');
+      }
       const { password, ...result } = user.toObject();
       return result;
     }
@@ -26,6 +52,10 @@ export class AuthService {
   }
 
   async login(user: any, ipAddress: string, userAgent: string) {
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException('Please verify your email before logging in');
+    }
+
     const payload = { email: user.email, sub: user._id, role: user.role };
 
     // Create audit log
@@ -137,15 +167,21 @@ export class AuthService {
   }
 
   async register(email: string, password: string, firstName: string, lastName: string, ipAddress: string, userAgent: string) {
-
     // Check if user already exists
     const existingUser = await this.userModel.findOne({ email });
     if (existingUser) {
       throw new ConflictException('Email already registered');
     }
 
+    // Validate password complexity
+    this.passwordService.validatePasswordComplexity(password);
+
     // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
+    const hashedPassword = await this.passwordService.hashPassword(password);
+
+    // Generate email verification token
+    const emailVerificationToken = this.passwordService.generateResetToken();
+    const emailVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
     // Create new user
     const newUser = await this.userModel.create({
@@ -153,12 +189,18 @@ export class AuthService {
       password: hashedPassword,
       firstName,
       lastName,
-      role: UserRole.CUSTOMER, // Default role
+      role: UserRole.CUSTOMER,
       isMfaEnabled: false,
+      emailVerificationToken,
+      emailVerificationTokenExpires,
+      isEmailVerified: false,
     });
 
+    // Send verification email
+    await this.emailService.sendEmailVerification(email, emailVerificationToken);
+
     // Create audit log
-    const auditLog = await this.auditLogModel.create({
+    await this.auditLogModel.create({
       userId: newUser._id,
       userEmail: newUser.email,
       action: AuditAction.REGISTER,
@@ -170,5 +212,161 @@ export class AuthService {
 
     const { password: _, ...result } = newUser.toObject();
     return result;
+  }
+
+  async verifyEmail(token: string): Promise<{ access_token: string; user: any }> {
+    const user = await this.userModel.findOne({
+      emailVerificationToken: token,
+      emailVerificationTokenExpires: { $gt: new Date() },
+      isEmailVerified: false,
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationTokenExpires = undefined;
+    await user.save();
+
+    // Create audit log
+    await this.auditLogModel.create({
+      userId: user._id,
+      userEmail: user.email,
+      action: AuditAction.EMAIL_VERIFICATION,
+      entityType: 'user',
+      entityId: user._id,
+    });
+
+    // Generate JWT token
+    const payload = { email: user.email, sub: user._id, role: user.role };
+    const access_token = this.jwtService.sign(payload);
+
+    return {
+      access_token,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        isMfaEnabled: user.isMfaEnabled,
+      },
+    };
+  }
+
+  async requestPasswordReset(email: string, ipAddress: string, userAgent: string): Promise<void> {
+    try {
+      const user = await this.userModel.findOne({ email });
+
+      if (!user) {
+        // Don't reveal whether the email exists
+        return;
+      }
+
+      const resetToken = this.passwordService.generateResetToken();
+
+      const resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      user.passwordResetToken = resetToken;
+      user.passwordResetTokenExpires = resetTokenExpires;
+      await user.save();
+
+      await this.emailService.sendPasswordResetEmail(email, resetToken);
+
+      // Create audit log
+      await this.auditLogModel.create({
+        userId: user._id,
+        userEmail: user.email,
+        action: AuditAction.PASSWORD_RESET_REQUEST,
+        entityType: 'user',
+        entityId: user._id,
+        ipAddress,
+        userAgent,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async resetPassword(token: string, newPassword: string, ipAddress: string, userAgent: string): Promise<void> {
+    const user = await this.userModel.findOne({
+      passwordResetToken: token,
+      passwordResetTokenExpires: { $gt: new Date() },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Validate password complexity
+    this.passwordService.validatePasswordComplexity(newPassword);
+
+    // Hash new password
+    const hashedPassword = await this.passwordService.hashPassword(newPassword);
+
+    user.password = hashedPassword;
+    user.passwordResetToken = undefined;
+    user.passwordResetTokenExpires = undefined;
+    await user.save();
+
+    // Create audit log
+    await this.auditLogModel.create({
+      userId: user._id,
+      userEmail: user.email,
+      action: AuditAction.PASSWORD_RESET,
+      entityType: 'user',
+      entityId: user._id,
+      ipAddress,
+      userAgent,
+    });
+  }
+
+  async updateProfile(userId: string, updateData: any, ipAddress: string, userAgent: string): Promise<UserResponse> {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // If updating email, require verification
+    if (updateData.email && updateData.email !== user.email) {
+      const emailVerificationToken = this.passwordService.generateResetToken();
+      const emailVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      user.email = updateData.email;
+      user.isEmailVerified = false;
+      user.emailVerificationToken = emailVerificationToken;
+      user.emailVerificationTokenExpires = emailVerificationTokenExpires;
+
+      await this.emailService.sendEmailVerification(updateData.email, emailVerificationToken);
+    }
+
+    // If updating password
+    if (updateData.password) {
+      this.passwordService.validatePasswordComplexity(updateData.password);
+      user.password = await this.passwordService.hashPassword(updateData.password);
+    }
+
+    // Update other fields
+    if (updateData.firstName) user.firstName = updateData.firstName;
+    if (updateData.lastName) user.lastName = updateData.lastName;
+
+    await user.save();
+
+    // Send notification
+    await this.emailService.sendProfileUpdateNotification(user.email);
+
+    // Create audit log
+    await this.auditLogModel.create({
+      userId: user._id,
+      userEmail: user.email,
+      action: AuditAction.PROFILE_UPDATE,
+      entityType: 'user',
+      entityId: user._id,
+      ipAddress,
+      userAgent,
+    });
+
+    const { password: _, ...result } = user.toObject();
+    return result as unknown as UserResponse;
   }
 }

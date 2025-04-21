@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { api } from '@/lib/api-client';
@@ -15,13 +15,22 @@ import { motion } from 'framer-motion';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | React.ReactNode>('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    const message = searchParams.get('message');
+    if (message && !message.includes('verify your email')) {
+      setSuccess(message);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
     setLoading(true);
 
     const formData = new FormData(e.currentTarget);
@@ -87,6 +96,17 @@ export default function LoginPage() {
                     </Alert>
                   </motion.div>
                 )}
+                {success && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <Alert>
+                      <AlertDescription>{success}</AlertDescription>
+                    </Alert>
+                  </motion.div>
+                )}
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-medium text-[var(--text-primary)]">
                     Email
@@ -125,6 +145,14 @@ export default function LoginPage() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                </div>
+                <div className="flex justify-end">
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-[var(--text-tertiary)] hover:text-[var(--primary)] transition-colors"
+                  >
+                    Forgot password?
+                  </Link>
                 </div>
                 <Button
                   type="submit"
