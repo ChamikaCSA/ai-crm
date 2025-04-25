@@ -14,8 +14,36 @@ export class aiService {
   }
 
   async generateRecommendations(interactions: Interaction[]) {
-    // TODO: Implement OpenAI recommendation generation
-    return [];
+    // Mock recommendations for testing
+    return [
+      {
+        id: '1',
+        title: 'Follow up with customer',
+        description: 'Customer showed interest in premium features during last interaction',
+        priority: 'high',
+        action: 'Schedule a call to discuss premium features',
+        score: 0.85,
+        type: 'follow_up'
+      },
+      {
+        id: '2',
+        title: 'Send product documentation',
+        description: 'Customer asked about integration capabilities',
+        priority: 'medium',
+        action: 'Share integration guide and API documentation',
+        score: 0.75,
+        type: 'documentation'
+      },
+      {
+        id: '3',
+        title: 'Check customer satisfaction',
+        description: 'Customer had a support ticket resolved recently',
+        priority: 'low',
+        action: 'Send satisfaction survey',
+        score: 0.65,
+        type: 'feedback'
+      }
+    ];
   }
 
   async generateChatResponse(

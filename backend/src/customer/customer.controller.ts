@@ -9,7 +9,9 @@ import { RecommendationDto } from './dto/recommendations.dto';
 
 interface AuthenticatedRequest extends Request {
   user: {
-    userId: string;
+    sub: string;
+    email: string;
+    role: string;
   };
 }
 
@@ -20,29 +22,29 @@ export class CustomerController {
 
   @Get('account')
   async getAccountDetails(@Req() req: AuthenticatedRequest) {
-    return this.customerService.getAccountDetails(req.user.userId);
+    return this.customerService.getAccountDetails(req.user.sub);
   }
 
   @Get('recommendation')
   async getRecommendations(@Req() req: AuthenticatedRequest): Promise<RecommendationDto[]> {
-    return this.customerService.getRecommendations(req.user.userId);
+    return this.customerService.getRecommendations(req.user.sub);
   }
 
   @Post('support-ticket')
   createSupportTicket(@Req() req: AuthenticatedRequest, @Body() createSupportTicketDto: CreateSupportTicketDto) {
-    const userId = req.user.userId;
+    const userId = req.user.sub;
     return this.customerService.createSupportTicket(userId, createSupportTicketDto);
   }
 
   @Get('support-ticket')
   findAllSupportTickets(@Req() req: AuthenticatedRequest) {
-    const userId = req.user.userId;
+    const userId = req.user.sub;
     return this.customerService.findAllSupportTickets(userId);
   }
 
   @Get('support-ticket/:id')
   async findOneSupportTicket(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
-    const userId = req.user.userId;
+    const userId = req.user.sub;
     try {
       return await this.customerService.findOneSupportTicket(id, userId);
     } catch (error) {
@@ -59,7 +61,7 @@ export class CustomerController {
     @Req() req: AuthenticatedRequest,
     @Body() updateSupportTicketDto: UpdateSupportTicketDto,
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.sub;
     try {
       return await this.customerService.updateSupportTicket(id, userId, updateSupportTicketDto);
     } catch (error) {
@@ -70,11 +72,11 @@ export class CustomerController {
     }
   }
 
-  @Post('chatbot/message')
+  @Post('chatbot')
   async handleChatbotMessage(
     @Req() req: AuthenticatedRequest,
     @Body() messageDto: ChatbotMessageDto,
   ): Promise<ChatbotResponseDto> {
-    return this.customerService.handleChatbotMessage(req.user.userId, messageDto.message);
+    return this.customerService.handleChatbotMessage(req.user.sub, messageDto.message);
   }
 }

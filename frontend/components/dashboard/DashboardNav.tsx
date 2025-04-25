@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
+import { motion } from 'framer-motion'
 import {
   Home,
   MessageSquare,
@@ -99,26 +100,58 @@ export function DashboardNav() {
   const navigation = getNavigation()
 
   return (
-    <nav className="space-y-2">
-      {navigation.map((item) => {
+    <nav className="space-y-1 p-2">
+      {navigation.map((item, index) => {
         const isActive = pathname === item.href
         return (
-          <Link
+          <motion.div
             key={item.name}
-            href={item.href}
-            className={cn(
-              'group flex items-center rounded-lg px-3 py-2 text-sm font-medium hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)] transition-colors',
-              isActive && 'bg-[var(--accent)] text-[var(--accent-foreground)]'
-            )}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.1 }}
           >
-            <item.icon
+            <Link
+              href={item.href}
               className={cn(
-                'mr-3 h-5 w-5',
-                isActive ? 'text-[var(--primary)]' : 'text-[var(--text-tertiary)] group-hover:text-[var(--primary)]'
+                'group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
+                'hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]',
+                'relative overflow-hidden',
+                isActive && 'bg-[var(--accent)] text-[var(--accent-foreground)]'
               )}
-            />
-            {item.name}
-          </Link>
+            >
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-[var(--primary)]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                initial={false}
+                animate={{ opacity: isActive ? 1 : 0 }}
+              />
+              <motion.div
+                className="absolute left-0 top-0 bottom-0 w-1 bg-[var(--primary)]"
+                initial={false}
+                animate={{ scaleY: isActive ? 1 : 0 }}
+                transition={{ duration: 0.2 }}
+                style={{ zIndex: 20 }}
+              />
+              <div className="relative z-10 flex items-center">
+                <item.icon
+                  className={cn(
+                    'mr-3 h-5 w-5 transition-transform duration-200',
+                    isActive
+                      ? 'text-[var(--primary)]'
+                      : 'text-[var(--text-tertiary)] group-hover:text-[var(--primary)]',
+                    'group-hover:scale-110'
+                  )}
+                />
+                <span>{item.name}</span>
+              </div>
+              {isActive && (
+                <motion.div
+                  className="absolute inset-0 bg-[var(--accent)]"
+                  layoutId="activeNavItem"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+            </Link>
+          </motion.div>
         )
       })}
     </nav>

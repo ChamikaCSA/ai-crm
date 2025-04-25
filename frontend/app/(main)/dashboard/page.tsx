@@ -1,7 +1,7 @@
-import { auth } from '@/lib/auth'
+'use client'
+
 import { redirect } from 'next/navigation'
-import { Header } from '@/components/Header'
-import { DashboardNav } from '@/components/dashboard/DashboardNav'
+import { useAuth } from '@/contexts/AuthContext'
 import { CustomerDashboard } from '@/components/dashboard/customer/CustomerDashboard'
 import { SalesRepDashboard } from '@/components/dashboard/sales-rep/SalesRepDashboard'
 import { SalesManagerDashboard } from '@/components/dashboard/sales-manager/SalesManagerDashboard'
@@ -9,15 +9,19 @@ import { MarketingSpecialistDashboard } from '@/components/dashboard/marketing-s
 import { DataAnalystDashboard } from '@/components/dashboard/data-analyst/DataAnalystDashboard'
 import { AdminDashboard } from '@/components/dashboard/admin/AdminDashboard'
 
-export default async function DashboardPage() {
-  const session = await auth()
+export default function DashboardPage() {
+  const { user, isLoading } = useAuth()
 
-  if (!session?.user) {
+  if (isLoading) {
+    return null
+  }
+
+  if (!user) {
     redirect('/auth/login')
   }
 
   const renderDashboard = () => {
-    switch (session.user.role) {
+    switch (user.role) {
       case 'customer':
         return <CustomerDashboard />
       case 'sales_rep':
@@ -36,18 +40,8 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <Header session={session} />
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          <div className="md:col-span-3">
-            <DashboardNav />
-          </div>
-          <div className="md:col-span-9">
-            {renderDashboard()}
-          </div>
-        </div>
-      </div>
+    <div className="container mx-auto px-4 py-8">
+      {renderDashboard()}
     </div>
   )
 }

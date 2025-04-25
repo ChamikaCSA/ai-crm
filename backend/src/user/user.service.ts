@@ -1,17 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
-import * as bcrypt from 'bcrypt';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { PasswordService } from '../auth/password.service';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { EmailService } from '../email/email.service';
+import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel('User') private userModel: Model<User>) {}
+  constructor(
+    @InjectModel('User') private userModel: Model<User>,
+    @InjectModel('AuditLog') private auditLogModel: Model<AuditLog>,
+    private readonly passwordService: PasswordService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+    this.passwordService.validatePasswordComplexity(createUserDto.password);
+    const hashedPassword = await this.passwordService.hashPassword(createUserDto.password);
     const createdUser = new this.userModel({
       ...createUserDto,
       password: hashedPassword,
@@ -41,7 +51,8 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
     if (updateUserDto.password) {
-      updateUserDto.password = await bcrypt.hash(updateUserDto.password, 10);
+      this.passwordService.validatePasswordComplexity(updateUserDto.password);
+      updateUserDto.password = await this.passwordService.hashPassword(updateUserDto.password);
     }
 
     const updatedUser = await this.userModel
@@ -67,5 +78,70 @@ export class UserService {
     }
 
     return deletedUser;
+  }
+
+  async changePassword(id: string, changePasswordDto: ChangePasswordDto): Promise<User> {
+    const user = await this.userModel.findById(id).exec();
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    const isPasswordValid = await this.passwordService.comparePasswords(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    this.passwordService.validatePasswordComplexity(changePasswordDto.newPassword);
+    const hashedNewPassword = await this.passwordService.hashPassword(changePasswordDto.newPassword);
+    user.password = hashedNewPassword;
+    await user.save();
+
+    return this.findOne(id);
+  }
+
+  async updateProfile(id: string, updateProfileDto: UpdateProfileDto, ipAddress: string, userAgent: string): Promise<User> {
+    const user = await this.userModel.findById(id);
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    // If updating email, require verification
+    if (updateProfileDto.email && updateProfileDto.email !== user.email) {
+      const emailVerificationToken = this.passwordService.generateResetToken();
+      const emailVerificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+      user.email = updateProfileDto.email;
+      user.isEmailVerified = false;
+      user.emailVerificationToken = emailVerificationToken;
+      user.emailVerificationTokenExpires = emailVerificationTokenExpires;
+
+      await this.emailService.sendEmailVerification(updateProfileDto.email, emailVerificationToken);
+    }
+
+    // Update other fields
+    if (updateProfileDto.firstName) user.firstName = updateProfileDto.firstName;
+    if (updateProfileDto.lastName) user.lastName = updateProfileDto.lastName;
+
+    await user.save();
+
+    // Send notification
+    await this.emailService.sendProfileUpdateNotification(user.email);
+
+    // Create audit log
+    await this.auditLogModel.create({
+      userId: user._id,
+      userEmail: user.email,
+      action: AuditAction.PROFILE_UPDATE,
+      entityType: 'user',
+      entityId: user._id,
+      ipAddress,
+      userAgent,
+    });
+
+    return this.findOne(id);
   }
 }

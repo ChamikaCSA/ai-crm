@@ -9,6 +9,7 @@ import * as qrcode from 'qrcode';
 import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
 import { EmailService } from '../email/email.service';
 import { PasswordService } from './password.service';
+import { APP_NAME } from '../config/strings';
 
 export interface UserResponse {
   _id: string;
@@ -78,6 +79,8 @@ export class AuthService {
       user: {
         id: user._id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
         isMfaEnabled: user.isMfaEnabled,
       },
@@ -107,7 +110,11 @@ export class AuthService {
   }
 
   async generateMfaSecret(userId: string) {
-    const secret = speakeasy.generateSecret();
+    const secret = speakeasy.generateSecret({
+      length: 20,
+      name: APP_NAME,
+      issuer: APP_NAME,
+    });
     const user = await this.userModel.findById(userId);
 
     if (!user) {
@@ -120,7 +127,10 @@ export class AuthService {
     const otpauthUrl = speakeasy.otpauthURL({
       secret: secret.base32,
       label: user.email,
-      issuer: 'AI CRM',
+      issuer: APP_NAME,
+      encoding: 'base32',
+      digits: 6,
+      step: 30,
     });
 
     const qrCode = await qrcode.toDataURL(otpauthUrl);
@@ -134,7 +144,11 @@ export class AuthService {
   async verifyMfaToken(userId: string, token: string) {
     const user = await this.userModel.findById(userId);
 
-    if (!user || !user.mfaSecret) {
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    if (!user.mfaSecret) {
       throw new UnauthorizedException('MFA not set up');
     }
 
@@ -142,6 +156,9 @@ export class AuthService {
       secret: user.mfaSecret,
       encoding: 'base32',
       token,
+      window: 1,
+      step: 30,
+      digits: 6,
     });
 
     return verified;
@@ -274,6 +291,8 @@ export class AuthService {
       user: {
         id: user._id,
         email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: user.role,
         isMfaEnabled: user.isMfaEnabled,
       },
@@ -394,5 +413,25 @@ export class AuthService {
 
     const { password: _, ...result } = user.toObject();
     return result as unknown as UserResponse;
+  }
+
+  async logout(userId: string, ipAddress: string, userAgent: string) {
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Create audit log for logout
+    await this.auditLogModel.create({
+      userId,
+      userEmail: user.email,
+      action: AuditAction.LOGOUT,
+      entityType: 'user',
+      entityId: userId,
+      ipAddress,
+      userAgent,
+    });
+
+    return { success: true };
   }
 }

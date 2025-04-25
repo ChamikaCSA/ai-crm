@@ -5,7 +5,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { APP_NAME } from "@/strings";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Footer } from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -33,7 +32,6 @@ export default function RootLayout({
               <main className="flex-1">
                 {children}
               </main>
-              <Footer />
               <Toaster />
             </div>
           </AuthProvider>

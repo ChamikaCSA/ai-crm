@@ -5,32 +5,16 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { Request } from 'express';
 import { CreateUserDto } from '../user/dto/create-user.dto';
 import { UserService } from '../user/user.service';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 interface RequestWithUser extends Request {
   user: {
     sub: string;
     [key: string]: any;
   };
-}
-
-class VerifyEmailDto {
-  token: string;
-}
-
-class RequestPasswordResetDto {
-  email: string;
-}
-
-class ResetPasswordDto {
-  token: string;
-  newPassword: string;
-}
-
-class UpdateProfileDto {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  password?: string;
 }
 
 @Controller('auth')
@@ -158,5 +142,11 @@ export class AuthController {
       throw new UnauthorizedException('Refresh token is required');
     }
     return this.authService.refreshToken(refreshToken);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  async logout(@Req() req: RequestWithUser) {
+    return this.authService.logout(req.user.sub, req.ip, req.headers['user-agent']);
   }
 }

@@ -27,9 +27,9 @@ export default function VerifyEmailPage() {
       try {
         await api.post('/api/auth/verify-email', { token });
         setStatus('success');
-        // Automatically redirect to home page after a short delay
+        // Automatically redirect to dashboard after a short delay
         setTimeout(() => {
-          router.push('/');
+          router.push('/dashboard');
         }, 2000);
       } catch (error: any) {
         setStatus('error');

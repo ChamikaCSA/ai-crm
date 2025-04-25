@@ -23,6 +23,16 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json()
+
+    // If MFA is required, return the response without setting cookies
+    if (data.data.user.isMfaEnabled) {
+      return NextResponse.json({
+        ...data.data,
+        requiresMfa: true
+      })
+    }
+
+    // If MFA is not required, set cookies and return the response
     const cookieStore = await cookies()
     cookieStore.set('token', data.data.access_token, {
       httpOnly: true,
@@ -37,9 +47,10 @@ export async function POST(request: Request) {
       maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
-    const allCookies = cookieStore.getAll();
-
-    return NextResponse.json(data.data)
+    return NextResponse.json({
+      ...data.data,
+      requiresMfa: false
+    })
   } catch (error) {
     console.error('Login error:', error)
     return NextResponse.json(

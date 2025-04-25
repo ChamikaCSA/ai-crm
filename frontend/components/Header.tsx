@@ -14,19 +14,18 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Sparkles, ArrowRight } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { ProfilePicture } from '@/components/ProfilePicture'
 
-interface HeaderProps {
-  session: { user: { id: string; name?: string; email?: string } | null } | null
-}
-
-export function Header({ session }: HeaderProps) {
-  const { logout } = useAuth()
+export function Header() {
+  const { user, logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  const fullName = user ? `${user.firstName} ${user.lastName}` : ''
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md shadow-sm">
@@ -60,7 +59,7 @@ export function Header({ session }: HeaderProps) {
               )}
               <span className="sr-only">Toggle theme</span>
             </Button>
-            {session?.user ? (
+            {user ? (
               <>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -68,12 +67,7 @@ export function Header({ session }: HeaderProps) {
                       variant="ghost"
                       className="relative h-8 w-8 rounded-full hover:bg-[var(--accent)] transition-colors group"
                     >
-                      <Avatar className="h-8 w-8 group-hover:ring-2 group-hover:ring-[var(--primary)] transition-all">
-                        <AvatarImage src={`https://avatar.vercel.sh/${session.user.email}`} alt={session.user.name || ''} />
-                        <AvatarFallback className="text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
-                          {session.user.name?.[0] || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                      <ProfilePicture user={user} size="sm" className="group-hover:ring-2 group-hover:ring-[var(--primary)] transition-all" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent

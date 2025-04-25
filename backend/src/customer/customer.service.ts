@@ -34,8 +34,29 @@ export class CustomerService {
   }
 
   private async getRecentInteractions(userId: string) {
-    // Implementation for fetching recent interactions
-    return [];
+    // Mock recent interactions for testing
+    return [
+      {
+        type: 'Chat Support',
+        description: 'Discussed premium features and pricing options',
+        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 minutes ago
+      },
+      {
+        type: 'Email Support',
+        description: 'Received response regarding API integration',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2 hours ago
+      },
+      {
+        type: 'System',
+        description: 'Account settings updated',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
+      },
+      {
+        type: 'Support Ticket',
+        description: 'Created new support ticket #1234',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() // 2 days ago
+      }
+    ];
   }
 
   private async getAccountStatus(userId: string) {

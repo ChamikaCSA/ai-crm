@@ -7,9 +7,10 @@ import {
   Put,
   Delete,
   UseGuards,
-  ParseUUIDPipe,
   UsePipes,
   ValidationPipe,
+  Req,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -18,6 +19,16 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { Request } from 'express';
+
+interface RequestWithUser extends Request {
+  user: {
+    sub: string;
+    [key: string]: any;
+  };
+}
 
 @Controller('users')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -39,14 +50,14 @@ export class UserController {
 
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES_MANAGER)
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
+  findOne(@Param('id') id: string) {
     return this.userService.findOne(id);
   }
 
   @Put(':id')
   @Roles(UserRole.ADMIN)
   update(
-    @Param('id', ParseUUIDPipe) id: string,
+    @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ) {
     return this.userService.update(id, updateUserDto);
@@ -54,7 +65,34 @@ export class UserController {
 
   @Delete(':id')
   @Roles(UserRole.ADMIN)
-  remove(@Param('id', ParseUUIDPipe) id: string) {
+  remove(@Param('id') id: string) {
     return this.userService.remove(id);
+  }
+
+  @Put(':id/change-password')
+  changePassword(
+    @Param('id') id: string,
+    @Body() changePasswordDto: ChangePasswordDto,
+  ) {
+    return this.userService.changePassword(id, changePasswordDto);
+  }
+
+  @Put(':id/profile')
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() updateProfileDto: UpdateProfileDto,
+    @Req() req: RequestWithUser,
+  ) {
+    // Only allow users to update their own profile
+    if (req.user.sub !== id) {
+      throw new UnauthorizedException('You can only update your own profile');
+    }
+
+    return this.userService.updateProfile(
+      id,
+      updateProfileDto,
+      req.ip,
+      req.headers['user-agent'],
+    );
   }
 }

@@ -11,6 +11,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
+  updateUser: (userData: User) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -43,6 +44,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const updateUser = (userData: User) => {
+    setUser(userData)
+  }
+
   const login = async (email: string, password: string) => {
     const { user, access_token, refresh_token } = await api.post<{ user: User; access_token: string; refresh_token: string }>('/api/auth/login', { email, password })
     setUser(user)
@@ -52,10 +57,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const logout = async () => {
-    await api.post('/api/auth/logout', {})
     setUser(null)
     document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
     document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+
+    await api.post('/api/auth/logout', {})
+
     router.push('/auth/login')
   }
 
@@ -65,7 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, refreshUser }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, refreshUser, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

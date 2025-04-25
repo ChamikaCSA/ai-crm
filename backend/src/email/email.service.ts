@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { APP_NAME } from '../config/strings';
 
 @Injectable()
 export class EmailService {
@@ -23,14 +24,14 @@ export class EmailService {
   }
 
   async sendEmailVerification(email: string, token: string): Promise<void> {
-    const verificationUrl = `${this.configService.get<string>('FRONTEND_URL')}/verify-email?token=${token}`;
+    const verificationUrl = `${this.configService.get<string>('FRONTEND_URL')}/auth/verify-email?token=${token}`;
 
     await this.transporter.sendMail({
       from: this.configService.get<string>('SMTP_FROM_EMAIL'),
       to: email,
       subject: 'Verify your email address',
       html: `
-        <h1>Welcome to AI CRM!</h1>
+        <h1>Welcome to ${APP_NAME}!</h1>
         <p>Please click the link below to verify your email address:</p>
         <a href="${verificationUrl}">Verify Email</a>
         <p>This link will expire in 24 hours.</p>
@@ -40,7 +41,7 @@ export class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, token: string): Promise<void> {
-    const resetUrl = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${token}`;
+    const resetUrl = `${this.configService.get<string>('FRONTEND_URL')}/auth/reset-password?token=${token}`;
 
     try {
       const info = await this.transporter.sendMail({

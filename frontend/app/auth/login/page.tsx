@@ -40,9 +40,16 @@ export default function LoginPage() {
     const password = formData.get('password') as string;
 
     try {
-      await login(email, password);
-      const from = searchParams.get('from');
-      router.push(from || '/');
+      const response = await api.post<{ user: any; access_token: string; refresh_token: string; requiresMfa: boolean }>('/api/auth/login', { email, password });
+
+      if (response.requiresMfa) {
+        // Redirect to MFA verification page with email and password
+        router.push(`/auth/mfa-verify?email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`);
+      } else {
+        await login(email, password);
+        const from = searchParams.get('from');
+        router.push(from || '/dashboard');
+      }
     } catch (error) {
       if (error instanceof ApiError) {
         setError(error.message);
