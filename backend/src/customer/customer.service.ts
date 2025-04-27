@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../user/schemas/user.schema';
@@ -8,7 +8,9 @@ import { CreateSupportTicketDto } from './dto/create-support-ticket.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-ticket.dto';
 import { RecommendationDto } from './dto/recommendations.dto';
 import { ChatbotResponseDto } from './dto/chatbot-message.dto';
+import { TicketReplyDto } from './dto/ticket-reply.dto';
 import { aiService } from '../ai/ai.service';
+import { SupportTicketStatus } from './schemas/support-ticket.schema';
 
 @Injectable()
 export class CustomerService {
@@ -97,13 +99,22 @@ export class CustomerService {
 
   // Support Ticket related methods
   async createSupportTicket(userId: string, createSupportTicketDto: CreateSupportTicketDto) {
+
     const supportTicket = new this.supportTicketModel({
       ...createSupportTicketDto,
       userId,
-      status: 'open',
+      status: SupportTicketStatus.OPEN,
       createdAt: new Date(),
+      updatedAt: new Date(),
     });
-    return supportTicket.save();
+
+    try {
+      const savedTicket = await supportTicket.save();
+      return savedTicket;
+    } catch (error) {
+      console.error('Customer Service - Error creating ticket:', error);
+      throw error;
+    }
   }
 
   async findAllSupportTickets(userId: string) {
@@ -129,6 +140,41 @@ export class CustomerService {
 
     Object.assign(supportTicket, updateData);
     return supportTicket.save();
+  }
+
+  async closeSupportTicket(id: string, userId: string) {
+    const supportTicket = await this.supportTicketModel.findOne({ _id: id, userId }).exec();
+    if (!supportTicket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+
+    if (supportTicket.status === SupportTicketStatus.CLOSED) {
+      throw new BadRequestException('Support ticket is already closed');
+    }
+
+    supportTicket.status = SupportTicketStatus.CLOSED;
+    supportTicket.updatedAt = new Date();
+    return supportTicket.save();
+  }
+
+  async addTicketReply(id: string, userId: string, replyDto: TicketReplyDto) {
+
+    const supportTicket = await this.supportTicketModel.findOne({ _id: id, userId }).exec()
+    if (!supportTicket) {
+      throw new NotFoundException('Support ticket not found')
+    }
+
+    const reply = {
+      author: userId,
+      message: replyDto.message,
+      timestamp: new Date(),
+      attachments: replyDto.attachments || [],
+    }
+
+    supportTicket.replies.push(reply)
+    const savedTicket = await supportTicket.save()
+
+    return savedTicket
   }
 
   // Chatbot related methods

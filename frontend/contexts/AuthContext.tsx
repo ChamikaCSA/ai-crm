@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api-client'
 import { User, UserRole } from '@/lib/types'
@@ -21,11 +21,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  const refreshUser = useCallback(async () => {
+    try {
+      const user = await api.get<User>('/api/auth/me')
+      setUser(user)
+    } catch (error) {
+      setUser(null)
+      throw error
+    }
+  }, [])
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const user = await api.get<User>('/api/auth/me')
-        setUser(user)
+        await refreshUser()
       } catch (error) {
         setUser(null)
       } finally {
@@ -33,37 +42,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     checkAuth()
-  }, [])
-
-  const refreshUser = async () => {
-    try {
-      const user = await api.get<User>('/api/auth/me')
-      setUser(user)
-    } catch (error) {
-      setUser(null)
-    }
-  }
+  }, [refreshUser])
 
   const updateUser = (userData: User) => {
     setUser(userData)
   }
 
   const login = async (email: string, password: string) => {
-    const { user, access_token, refresh_token } = await api.post<{ user: User; access_token: string; refresh_token: string }>('/api/auth/login', { email, password })
-    setUser(user)
-    document.cookie = `token=${access_token}; path=/; max-age=900` // 15 minutes
-    document.cookie = `refresh_token=${refresh_token}; path=/; max-age=604800` // 7 days
-    router.push('/dashboard')
+    try {
+      const { user, access_token, refresh_token } = await api.post<{ user: User; access_token: string; refresh_token: string }>('/api/auth/login', { email, password })
+      setUser(user)
+      document.cookie = `token=${access_token}; path=/; max-age=900` // 15 minutes
+      document.cookie = `refresh_token=${refresh_token}; path=/; max-age=604800` // 7 days
+      router.push('/dashboard')
+    } catch (error) {
+      console.error('Login failed:', error)
+      throw error
+    }
   }
 
   const logout = async () => {
-    setUser(null)
-    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-    document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
-
-    await api.post('/api/auth/logout', {})
-
-    router.push('/auth/login')
+    try {
+      setUser(null)
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      await api.post('/api/auth/logout', {})
+      router.push('/auth/login')
+    } catch (error) {
+      console.error('Logout failed:', error)
+      // Still clear local state and redirect even if the API call fails
+      setUser(null)
+      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
+      router.push('/auth/login')
+    }
   }
 
   // Don't render children until initial auth check is complete

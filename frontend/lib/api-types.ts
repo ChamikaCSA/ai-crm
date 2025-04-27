@@ -25,8 +25,21 @@ export interface Recommendation {
 export enum SupportTicketStatus {
   OPEN = 'OPEN',
   IN_PROGRESS = 'IN_PROGRESS',
-  RESOLVED = 'RESOLVED',
   CLOSED = 'CLOSED'
+}
+
+export enum SupportTicketPriority {
+  LOW = 'LOW',
+  MEDIUM = 'MEDIUM',
+  HIGH = 'HIGH',
+  URGENT = 'URGENT'
+}
+
+export enum SupportTicketCategory {
+  GENERAL = 'GENERAL',
+  TECHNICAL = 'TECHNICAL',
+  BILLING = 'BILLING',
+  FEATURE = 'FEATURE'
 }
 
 export interface SupportTicket {
@@ -35,10 +48,25 @@ export interface SupportTicket {
   subject: string;
   description: string;
   status: SupportTicketStatus;
+  priority: SupportTicketPriority;
+  category: SupportTicketCategory;
   resolutionDetails?: string;
   assignedTo?: string;
   createdAt: string;
   updatedAt: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+  }>;
+  replies?: Array<{
+    author: string;
+    message: string;
+    timestamp: string;
+    attachments?: Array<{
+      name: string;
+      url: string;
+    }>;
+  }>;
 }
 
 export interface AccountDetails {
@@ -53,6 +81,7 @@ export interface AccountDetails {
     isActive: boolean;
     createdAt: string;
     updatedAt: string;
+    profilePicture?: string;
   };
   supportTickets: SupportTicket[];
   recentInteractions: Array<{

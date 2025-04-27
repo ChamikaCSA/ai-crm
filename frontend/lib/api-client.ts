@@ -11,6 +11,42 @@ export class ApiError extends Error {
   }
 }
 
+// Add refresh queue to prevent multiple simultaneous refresh attempts
+let isRefreshing = false;
+let refreshSubscribers: ((token: string) => void)[] = [];
+
+function subscribeTokenRefresh(cb: (token: string) => void) {
+  refreshSubscribers.push(cb);
+}
+
+function onRefreshComplete(token: string) {
+  refreshSubscribers.forEach(cb => cb(token));
+  refreshSubscribers = [];
+}
+
+async function refreshTokens(refreshToken: string): Promise<{ access_token: string; refresh_token: string }> {
+  try {
+    const refreshResponse = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+      credentials: 'include',
+    });
+
+    if (!refreshResponse.ok) {
+      const error = await refreshResponse.json();
+      throw new Error(error.error || 'Failed to refresh token');
+    }
+
+    return await refreshResponse.json();
+  } catch (error) {
+    console.error('Token refresh failed:', error);
+    throw error;
+  }
+}
+
 export async function apiClient<T>(
   endpoint: string,
   options: RequestOptions = {}
@@ -43,9 +79,13 @@ export async function apiClient<T>(
   }
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
     ...options.headers,
   };
+
+  // Only set Content-Type to application/json if body is not FormData
+  if (!(options.body instanceof FormData)) {
+    headers["Content-Type"] = "application/json";
+  }
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
@@ -54,48 +94,66 @@ export async function apiClient<T>(
   const response = await fetch(endpoint, {
     method: options.method || "GET",
     headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
+    body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
+    credentials: 'include',
   });
 
   // If the token is expired and we have a refresh token, try to refresh
   if (response.status === 401 && refreshToken && typeof window !== "undefined") {
-    try {
-      const refreshResponse = await fetch('/api/auth/refresh', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ refresh_token: refreshToken }),
-      });
+    if (!isRefreshing) {
+      isRefreshing = true;
+      try {
+        const { access_token, refresh_token } = await refreshTokens(refreshToken);
 
-      if (refreshResponse.ok) {
-        const { access_token, refresh_token } = await refreshResponse.json();
-
-        // Update cookies
-        document.cookie = `token=${access_token}; path=/; max-age=900`; // 15 minutes
-        document.cookie = `refresh_token=${refresh_token}; path=/; max-age=604800`; // 7 days
+        // Notify all subscribers
+        onRefreshComplete(access_token);
 
         // Retry the original request with the new token
         headers["Authorization"] = `Bearer ${access_token}`;
         const retryResponse = await fetch(endpoint, {
           method: options.method || "GET",
           headers,
-          body: options.body ? JSON.stringify(options.body) : undefined,
+          body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
+          credentials: 'include', // Important: Include cookies in the request
         });
 
-        const data = await retryResponse.json();
         if (!retryResponse.ok) {
+          const data = await retryResponse.json();
           throw new ApiError(retryResponse.status, data.error || "An error occurred");
         }
+
+        const data = await retryResponse.json();
         return data;
+      } catch (error) {
+        console.error('API Client - Refresh failed:', error);
+        // If refresh fails, redirect to login
+        window.location.href = '/auth/login';
+        throw error;
+      } finally {
+        isRefreshing = false;
       }
-    } catch (error) {
-      console.error('API Client - Refresh failed:', error);
-      // If refresh fails, clear tokens and redirect to login
-      document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-      window.location.href = '/auth/login';
-      throw error;
+    } else {
+      // If a refresh is already in progress, wait for it to complete
+      return new Promise((resolve, reject) => {
+        subscribeTokenRefresh((newToken) => {
+          headers["Authorization"] = `Bearer ${newToken}`;
+          fetch(endpoint, {
+            method: options.method || "GET",
+            headers,
+            body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
+            credentials: 'include',
+          })
+            .then(response => response.json())
+            .then(data => {
+              if (!response.ok) {
+                reject(new ApiError(response.status, data.error || "An error occurred"));
+              } else {
+                resolve(data);
+              }
+            })
+            .catch(reject);
+        });
+      });
     }
   }
 

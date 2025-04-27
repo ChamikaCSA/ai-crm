@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Shield, ArrowRight } from 'lucide-react'
+import { Loader2, Shield } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useAuth } from '@/contexts/AuthContext'
 
@@ -130,21 +130,11 @@ export default function MfaVerifyPage() {
                     pattern="[0-9]*"
                   />
                 </div>
-                <Button
-                  onClick={handleVerify}
-                  className="w-full btn-primary shadow-lg hover:shadow-xl transition-all group"
-                  disabled={isLoading}
-                >
+                <Button type="submit" disabled={isLoading} className="w-full group">
                   {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Verifying...
-                    </>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Verifying...</>
                   ) : (
-                    <>
-                      Verify
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </>
+                    <>Verify</>
                   )}
                 </Button>
               </div>

@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Mail, Lock, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react';
+import { Loader2, Mail, Lock, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -161,15 +161,9 @@ export default function LoginPage() {
                   disabled={loading}
                 >
                   {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Signing in...
-                    </>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Signing in...</>
                   ) : (
-                    <>
-                      Sign in
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </>
+                    <>Sign In</>
                   )}
                 </Button>
               </form>

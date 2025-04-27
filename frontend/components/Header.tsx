@@ -8,27 +8,40 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Sparkles, ArrowRight } from 'lucide-react'
+import { Moon, Sun, Sparkles, User, Settings, HelpCircle, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ProfilePicture } from '@/components/ProfilePicture'
+import { cn } from '@/lib/utils'
+import { Switch } from '@/components/ui/switch'
 
 export function Header() {
   const { user, logout } = useAuth()
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
     setMounted(true)
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 0)
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   const fullName = user ? `${user.firstName} ${user.lastName}` : ''
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md shadow-sm">
+    <nav className={cn(
+      "sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md transition-all duration-200",
+      isScrolled ? "shadow-md" : "shadow-sm"
+    )}>
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
@@ -42,23 +55,6 @@ export function Header() {
           </div>
 
           <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-              className="hover:bg-[var(--accent)] transition-colors group"
-            >
-              {mounted ? (
-                theme === 'light' ? (
-                  <Sun className="h-[1.2rem] w-[1.2rem] text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors" />
-                ) : (
-                  <Moon className="h-[1.2rem] w-[1.2rem] text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors" />
-                )
-              ) : (
-                <div className="h-[1.2rem] w-[1.2rem]" />
-              )}
-              <span className="sr-only">Toggle theme</span>
-            </Button>
             {user ? (
               <>
                 <DropdownMenu>
@@ -75,10 +71,69 @@ export function Header() {
                     align="end"
                     forceMount
                   >
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{fullName}</p>
+                        <p className="text-xs leading-none text-[var(--text-tertiary)]">{user.email}</p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/account" className="flex items-center gap-2 cursor-pointer">
+                        <User className="w-4 h-4" />
+                        Profile
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/settings" className="flex items-center gap-2 cursor-pointer">
+                        <Settings className="w-4 h-4" />
+                        Settings
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard/support" className="flex items-center gap-2 cursor-pointer">
+                        <HelpCircle className="w-4 h-4" />
+                        Help & Support
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <div className="flex items-center justify-between px-2 py-2 hover:bg-[var(--accent)] transition-colors rounded-md cursor-pointer">
+                      <div className="flex items-center gap-2.5">
+                        <div className="relative w-4 h-4">
+                          {mounted ? (
+                            <>
+                              <Sun className={cn(
+                                "w-4 h-4 text-[var(--text-primary)] absolute transition-all duration-300",
+                                theme === 'light' ? 'opacity-100 rotate-0' : 'opacity-0 -rotate-90'
+                              )} />
+                              <Moon className={cn(
+                                "w-4 h-4 text-[var(--text-primary)] absolute transition-all duration-300",
+                                theme === 'dark' ? 'opacity-100 rotate-0' : 'opacity-0 rotate-90'
+                              )} />
+                            </>
+                          ) : (
+                            <div className="w-4 h-4" />
+                          )}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">Theme</span>
+                          <span className="text-xs text-[var(--text-tertiary)]">
+                            {mounted ? (theme === 'light' ? 'Light Mode' : 'Dark Mode') : 'Loading...'}
+                          </span>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={mounted && theme === 'dark'}
+                        onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+                        className="data-[state=checked]:bg-[var(--primary)]"
+                      />
+                    </div>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem
                       onClick={logout}
-                      className="hover:bg-[var(--accent)] transition-colors cursor-pointer"
+                      className="flex items-center gap-2 cursor-pointer"
                     >
+                      <LogOut className="w-4 h-4" />
                       Log out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -104,7 +159,6 @@ export function Header() {
                     className="text-[var(--primary-foreground)] flex items-center gap-2"
                   >
                     Get Started
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </Link>
                 </Button>
               </>

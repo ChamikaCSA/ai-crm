@@ -10,7 +10,7 @@ import {
   MessageSquare,
   Lightbulb,
   User,
-  LifeBuoy,
+  Headphones,
   Settings,
   Users,
   ClipboardList,
@@ -25,7 +25,7 @@ const customerNavigation = [
   { name: 'Chat Support', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Recommendations', href: '/dashboard/recommendations', icon: Lightbulb },
   { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Support', href: '/dashboard/support', icon: LifeBuoy },
+  { name: 'Support', href: '/dashboard/support', icon: Headphones },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 

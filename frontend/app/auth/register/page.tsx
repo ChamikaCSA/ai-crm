@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Mail, Lock, User, ArrowRight, Sparkles, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Mail, Lock, User, Sparkles, Eye, EyeOff } from 'lucide-react'
 import { motion } from 'framer-motion'
 
 export default function RegisterPage() {
@@ -196,21 +196,11 @@ export default function RegisterPage() {
                     </button>
                   </div>
                 </div>
-                <Button
-                  type="submit"
-                  className="w-full btn-primary shadow-lg hover:shadow-xl transition-all group"
-                  disabled={loading}
-                >
+                <Button type="submit" disabled={loading} className="w-full group">
                   {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating account...
-                    </>
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Creating account...</>
                   ) : (
-                    <>
-                      Create account
-                      <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                    </>
+                    <>Create Account</>
                   )}
                 </Button>
               </form>

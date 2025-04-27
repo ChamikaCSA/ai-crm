@@ -4,6 +4,7 @@
   /* Base colors */
   --background: #fdf4ff;
   --foreground: #2e1065;
+  --card: #f8f0ff;
 
   /* Primary colors - Deep violet */
   --primary: #6b21a8;
@@ -57,6 +58,7 @@
 .dark {
   --background: #1a1b26;
   --foreground: #e0e0e0;
+  --card: #1d1e2b;
 
   /* Primary colors - Muted violet */
   --primary: #7c3aed;

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse, SupportTicket } from '@/lib/api-types'
+import { NextRequest } from 'next/server'
 
 export async function GET() {
   try {
@@ -15,13 +16,23 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const response = await api.post<ApiResponse<SupportTicket>>(`${process.env.NEXT_PUBLIC_API_URL}/customer/support-ticket`, body)
+    const contentType = request.headers.get('content-type') || ''
+
+    let data
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      data = formData
+    } else {
+      data = await request.json()
+    }
+
+    const response = await api.post<ApiResponse<SupportTicket>>(`${process.env.NEXT_PUBLIC_API_URL}/customer/support-ticket`, data)
+
     return NextResponse.json(response.data)
   } catch (error) {
-    console.error('Failed to create support ticket:', error)
+    console.error('Frontend API Route - Error details:', error)
     return NextResponse.json(
       { error: 'Failed to create support ticket' },
       { status: 500 }
