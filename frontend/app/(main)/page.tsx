@@ -6,7 +6,8 @@ import { APP_NAME } from '@/strings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Users, ClipboardList, BarChart3, Sparkles, CheckCircle2, Star, Zap, Shield, Globe, MessageSquare, ChevronDown } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import React from 'react'
 
 type StatCardProps = {
   value: string
@@ -142,24 +143,53 @@ const PricingCard = ({ name, price, features, popular, delay = 0 }: PricingCardP
   </motion.div>
 )
 
-const FAQCard = ({ question, answer, delay = 0 }: FAQCardProps) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.5, delay }}
-    viewport={{ once: true }}
-  >
-    <Card className="card shadow-lg hover:shadow-xl transition-all">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-medium text-[var(--text-primary)]">{question}</h3>
-          <ChevronDown className="w-5 h-5 text-[var(--text-tertiary)]" />
-        </div>
-        <p className="mt-4 text-[var(--text-tertiary)]">{answer}</p>
-      </CardContent>
-    </Card>
-  </motion.div>
-)
+const FAQCard = ({ question, answer, delay = 0 }: FAQCardProps) => {
+  const [isOpen, setIsOpen] = React.useState(false)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, delay }}
+      viewport={{ once: true }}
+    >
+      <Card
+        className="card shadow-lg hover:shadow-xl transition-all cursor-pointer"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <CardContent className="p-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-[var(--text-primary)]">{question}</h3>
+            <motion.div
+              animate={{ rotate: isOpen ? 180 : 0 }}
+              transition={{ duration: 0.3, ease: "easeInOut" }}
+            >
+              <ChevronDown className="w-5 h-5 text-[var(--text-tertiary)]" />
+            </motion.div>
+          </div>
+          <AnimatePresence initial={false}>
+            {isOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{
+                  height: { duration: 0.3, ease: "easeInOut" },
+                  opacity: { duration: 0.2, ease: "easeInOut" }
+                }}
+                className="overflow-hidden"
+              >
+                <p className="mt-4 text-[var(--text-tertiary)]">
+                  {answer}
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </CardContent>
+      </Card>
+    </motion.div>
+  )
+}
 
 export default function LandingPage() {
   const { user } = useAuth()

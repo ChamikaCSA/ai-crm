@@ -69,6 +69,18 @@ export interface SupportTicket {
   }>;
 }
 
+export enum InteractionType {
+  CHAT = 'CHAT',
+  EMAIL = 'EMAIL',
+  SUPPORT_TICKET = 'SUPPORT_TICKET',
+  SYSTEM = 'SYSTEM',
+  LOGIN = 'LOGIN',
+  SETTINGS_UPDATE = 'SETTINGS_UPDATE',
+  PROFILE_UPDATE = 'PROFILE_UPDATE',
+  DOCUMENT_VIEW = 'DOCUMENT_VIEW',
+  FEATURE_USAGE = 'FEATURE_USAGE'
+}
+
 export interface AccountDetails {
   user: {
     id: string;
@@ -85,9 +97,10 @@ export interface AccountDetails {
   };
   supportTickets: SupportTicket[];
   recentInteractions: Array<{
-    type: string;
+    type: InteractionType;
     description: string;
     timestamp: string;
+    metadata?: Record<string, any>;
   }>;
   accountStatus: {
     status: string;

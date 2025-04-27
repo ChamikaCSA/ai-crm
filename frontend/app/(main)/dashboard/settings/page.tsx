@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { User, Globe, Shield, Key, Save, Settings2, Bell, Lock, Settings } from 'lucide-react'
-import { ChangePasswordDialog } from '@/components/dashboard/ChangePasswordDialog'
-import { MfaSetupDialog } from '@/components/dashboard/MfaSetupDialog'
+import { ChangePasswordDialog } from '@/components/(main)/dashboard/ChangePasswordDialog'
+import { MfaSetupDialog } from '@/components/(main)/dashboard/MfaSetupDialog'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { containerVariants, itemVariants } from '@/lib/animations'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
+import { interactionService } from '@/lib/interaction-service'
 
 export default function SettingsPage() {
   const { user, updateUser } = useAuth()
@@ -55,6 +56,10 @@ export default function SettingsPage() {
 
       const data = await response.json()
       updateUser(data)
+
+      // Track profile update
+      await interactionService.trackProfileUpdate(formData)
+
       toast.success('Profile updated successfully')
     } catch (error) {
       console.error('Profile update error:', error)

@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { User, Clock, CheckCircle2, AlertCircle, Activity, Ticket, Bell, Settings, Lightbulb } from 'lucide-react'
+import { User, Clock, CheckCircle2, AlertCircle, Activity, Ticket, Bell, Settings, Lightbulb, MessageSquare, Mail, LogIn, FileText, Zap } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { toast } from 'sonner'
-import { AccountDetails, SupportTicket, SupportTicketStatus, Recommendation } from '@/lib/api-types'
+import { AccountDetails, SupportTicket, SupportTicketStatus, Recommendation, InteractionType } from '@/lib/api-types'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { ProfilePicture } from '@/components/ProfilePicture'
@@ -14,6 +14,31 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { Skeleton } from '@/components/ui/skeleton'
 import { containerVariants, itemVariants } from '@/lib/animations'
+
+const getInteractionIcon = (type: InteractionType) => {
+  switch (type) {
+    case InteractionType.CHAT:
+      return MessageSquare;
+    case InteractionType.EMAIL:
+      return Mail;
+    case InteractionType.SUPPORT_TICKET:
+      return Ticket;
+    case InteractionType.SYSTEM:
+      return Settings;
+    case InteractionType.LOGIN:
+      return LogIn;
+    case InteractionType.SETTINGS_UPDATE:
+      return Settings;
+    case InteractionType.PROFILE_UPDATE:
+      return User;
+    case InteractionType.DOCUMENT_VIEW:
+      return FileText;
+    case InteractionType.FEATURE_USAGE:
+      return Zap;
+    default:
+      return Activity;
+  }
+};
 
 export function CustomerDashboard() {
   const [accountDetails, setAccountDetails] = useState<AccountDetails | null>(null)
@@ -292,29 +317,32 @@ export function CustomerDashboard() {
               ) : (
                 <div className="space-y-4 flex-1">
                   <AnimatePresence>
-                    {accountDetails?.recentInteractions.slice(0, 3).map((interaction, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                            <Activity className="w-5 h-5 text-[var(--primary)]" />
+                    {accountDetails?.recentInteractions.slice(0, 3).map((interaction, index) => {
+                      const Icon = getInteractionIcon(interaction.type);
+                      return (
+                        <motion.div
+                          key={index}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 20 }}
+                          transition={{ duration: 0.3, delay: index * 0.1 }}
+                          className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                              <Icon className="w-5 h-5 text-[var(--primary)]" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium group-hover:text-[var(--primary)] transition-colors">{interaction.type}</h3>
+                              <p className="text-sm text-[var(--text-tertiary)] line-clamp-1">{interaction.description}</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-medium group-hover:text-[var(--primary)] transition-colors">{interaction.type}</h3>
-                            <p className="text-sm text-[var(--text-tertiary)] line-clamp-1">{interaction.description}</p>
-                          </div>
-                        </div>
-                        <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
-                          {new Date(interaction.timestamp).toLocaleDateString()}
-                        </time>
-                      </motion.div>
-                    ))}
+                          <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
+                            {new Date(interaction.timestamp).toLocaleDateString()}
+                          </time>
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
                 </div>
               )}

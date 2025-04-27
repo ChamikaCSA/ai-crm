@@ -2,10 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User, Clock, CheckCircle2, AlertCircle, Activity, Settings, Bell, Shield } from "lucide-react";
+import { User, Clock, CheckCircle2, AlertCircle, Activity, Ticket, Bell, Settings, Shield, MessageSquare, Mail, LogIn, FileText, Zap } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
-import { AccountDetails } from "@/lib/api-types";
+import { AccountDetails, InteractionType } from "@/lib/api-types";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { redirect } from "next/navigation";
@@ -16,6 +16,32 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { containerVariants, itemVariants } from '@/lib/animations'
+import { interactionService } from '@/lib/interaction-service'
+
+const getInteractionIcon = (type: InteractionType) => {
+  switch (type) {
+    case InteractionType.CHAT:
+      return MessageSquare;
+    case InteractionType.EMAIL:
+      return Mail;
+    case InteractionType.SUPPORT_TICKET:
+      return Ticket;
+    case InteractionType.SYSTEM:
+      return Settings;
+    case InteractionType.LOGIN:
+      return LogIn;
+    case InteractionType.SETTINGS_UPDATE:
+      return Settings;
+    case InteractionType.PROFILE_UPDATE:
+      return User;
+    case InteractionType.DOCUMENT_VIEW:
+      return FileText;
+    case InteractionType.FEATURE_USAGE:
+      return Zap;
+    default:
+      return Activity;
+  }
+};
 
 export default function AccountPage() {
   const { user } = useAuth();
@@ -34,6 +60,7 @@ export default function AccountPage() {
     try {
       const response = await api.get<AccountDetails>("/api/customer/account");
       setAccountDetails(response);
+
     } catch (error) {
       console.error("Failed to fetch account details:", error);
       toast.error("Failed to fetch account details");
@@ -298,35 +325,38 @@ export default function AccountPage() {
             ) : (
               <div className="space-y-4">
                 <AnimatePresence>
-                  {accountDetails.recentInteractions.map((interaction, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -10 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-start gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                            <Activity className="w-5 h-5 text-[var(--primary)]" />
+                  {accountDetails.recentInteractions.map((interaction, index) => {
+                    const Icon = getInteractionIcon(interaction.type);
+                    return (
+                      <motion.div
+                        key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        className="p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                              <Icon className="w-5 h-5 text-[var(--primary)]" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
+                                {interaction.type}
+                              </h3>
+                              <p className="text-sm text-[var(--text-tertiary)] mt-1">
+                                {interaction.description}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-medium text-[var(--text-primary)] group-hover:text-[var(--primary)] transition-colors">
-                              {interaction.type}
-                            </h3>
-                            <p className="text-sm text-[var(--text-tertiary)] mt-1">
-                              {interaction.description}
-                            </p>
-                          </div>
+                          <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
+                            {new Date(interaction.timestamp).toLocaleDateString()}
+                          </time>
                         </div>
-                        <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
-                          {new Date(interaction.timestamp).toLocaleDateString()}
-                        </time>
-                      </div>
-                    </motion.div>
-                  ))}
+                      </motion.div>
+                    );
+                  })}
                 </AnimatePresence>
               </div>
             )}

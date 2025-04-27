@@ -9,12 +9,20 @@ import { RecommendationDto } from './dto/recommendations.dto';
 import { TicketReplyDto } from './dto/ticket-reply.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { join } from 'path';
+import { InteractionType } from './schemas/interaction.schema';
 
 interface AuthenticatedRequest extends Request {
   user: {
     sub: string;
     email: string;
     role: string;
+  };
+}
+
+interface RequestWithUser extends Request {
+  user: {
+    sub: string;
+    [key: string]: any;
   };
 }
 
@@ -168,5 +176,22 @@ export class CustomerController {
     } catch (error) {
       throw new NotFoundException('File not found');
     }
+  }
+
+  @Post('interaction')
+  async trackInteraction(
+    @Req() req: RequestWithUser,
+    @Body() body: {
+      type: InteractionType;
+      description: string;
+      metadata?: Record<string, any>;
+    },
+  ) {
+    return this.customerService.trackInteraction(
+      req.user.sub,
+      body.type,
+      body.description,
+      body.metadata,
+    );
   }
 }

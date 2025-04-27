@@ -11,6 +11,7 @@ import { ChatbotResponseDto } from './dto/chatbot-message.dto';
 import { TicketReplyDto } from './dto/ticket-reply.dto';
 import { aiService } from '../ai/ai.service';
 import { SupportTicketStatus } from './schemas/support-ticket.schema';
+import { InteractionType } from './schemas/interaction.schema';
 
 @Injectable()
 export class CustomerService {
@@ -36,29 +37,18 @@ export class CustomerService {
   }
 
   private async getRecentInteractions(userId: string) {
-    // Mock recent interactions for testing
-    return [
-      {
-        type: 'Chat Support',
-        description: 'Discussed premium features and pricing options',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 minutes ago
-      },
-      {
-        type: 'Email Support',
-        description: 'Received response regarding API integration',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2 hours ago
-      },
-      {
-        type: 'System',
-        description: 'Account settings updated',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
-      },
-      {
-        type: 'Support Ticket',
-        description: 'Created new support ticket #1234',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() // 2 days ago
-      }
-    ];
+    const interactions = await this.interactionModel
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .exec();
+
+    return interactions.map(interaction => ({
+      type: interaction.type,
+      description: interaction.description,
+      timestamp: interaction.createdAt.toISOString(),
+      metadata: interaction.metadata
+    }));
   }
 
   private async getAccountStatus(userId: string) {
@@ -87,11 +77,17 @@ export class CustomerService {
     return recommendations;
   }
 
-  async trackInteraction(userId: string, type: string, data: any) {
+  async trackInteraction(
+    userId: string,
+    type: InteractionType,
+    description: string,
+    metadata: any = {}
+  ) {
     const interaction = new this.interactionModel({
       userId,
       type,
-      data,
+      description,
+      metadata,
       createdAt: new Date(),
     });
     return interaction.save();
@@ -99,7 +95,6 @@ export class CustomerService {
 
   // Support Ticket related methods
   async createSupportTicket(userId: string, createSupportTicketDto: CreateSupportTicketDto) {
-
     const supportTicket = new this.supportTicketModel({
       ...createSupportTicketDto,
       userId,
@@ -108,13 +103,9 @@ export class CustomerService {
       updatedAt: new Date(),
     });
 
-    try {
-      const savedTicket = await supportTicket.save();
-      return savedTicket;
-    } catch (error) {
-      console.error('Customer Service - Error creating ticket:', error);
-      throw error;
-    }
+    const savedTicket = await supportTicket.save();
+
+    return savedTicket;
   }
 
   async findAllSupportTickets(userId: string) {
@@ -129,8 +120,12 @@ export class CustomerService {
     return supportTicket;
   }
 
-  async updateSupportTicket(id: string, userId: string, updateSupportTicketDto: UpdateSupportTicketDto) {
-    const supportTicket = await this.supportTicketModel.findOne({ _id: id, userId }).exec();
+  async updateSupportTicket(
+    userId: string,
+    ticketId: string,
+    updateSupportTicketDto: UpdateSupportTicketDto,
+  ) {
+    const supportTicket = await this.supportTicketModel.findOne({ _id: ticketId, userId }).exec();
     if (!supportTicket) {
       throw new NotFoundException('Support ticket not found');
     }
@@ -139,7 +134,9 @@ export class CustomerService {
     const { status, resolution, ...updateData } = updateSupportTicketDto;
 
     Object.assign(supportTicket, updateData);
-    return supportTicket.save();
+    const updatedTicket = await supportTicket.save();
+
+    return updatedTicket;
   }
 
   async closeSupportTicket(id: string, userId: string) {
@@ -189,9 +186,6 @@ export class CustomerService {
       `chat_${userId}`,
     );
 
-    // Save the interaction
-    await this.saveInteraction(userId, message, response);
-
     return {
       response,
       sessionId: `chat_${userId}`,
@@ -201,9 +195,5 @@ export class CustomerService {
   private async getConversationHistory(userId: string) {
     // TODO: Implement conversation history retrieval
     return [];
-  }
-
-  private async saveInteraction(userId: string, message: string, response: string) {
-    // TODO: Implement interaction saving
   }
 }

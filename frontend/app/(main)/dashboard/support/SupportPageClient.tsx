@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label'
 import { api } from '@/lib/api-client'
 import { toast } from 'sonner'
 import { useEffect, useState } from 'react'
-import { SupportTicketStatus, SupportTicketPriority, SupportTicketCategory } from '@/lib/api-types'
+import { SupportTicketStatus, SupportTicketPriority, SupportTicketCategory, SupportTicket as BaseSupportTicket } from '@/lib/api-types'
 import {
   Dialog,
   DialogContent,
@@ -29,32 +29,21 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { interactionService } from '@/lib/interaction-service'
 
 interface SupportTicketMessage {
-  id: string
-  content: string
-  isUser: boolean
-  timestamp: Date
+  _id: string
+  author: string
+  message: string
+  timestamp: string
   attachments?: Array<{
     name: string
     url: string
   }>
 }
 
-interface SupportTicket {
-  _id: string
-  subject: string
-  description: string
-  status: SupportTicketStatus
-  priority: SupportTicketPriority
-  category: SupportTicketCategory
-  createdAt: string
-  updatedAt: string
-  messages: SupportTicketMessage[]
-  attachments?: Array<{
-    name: string
-    url: string
-  }>
+interface SupportTicket extends BaseSupportTicket {
+  replies: SupportTicketMessage[]
 }
 
 function CreateSupportTicketForm({ onTicketCreated }: { onTicketCreated?: () => void }) {
@@ -89,7 +78,15 @@ function CreateSupportTicketForm({ onTicketCreated }: { onTicketCreated?: () => 
         formData.append('attachments', file)
       })
 
-      await api.post('/api/customer/support-ticket', formData)
+      const response = await api.post<SupportTicket>('/api/customer/support-ticket', formData)
+
+      // Track support ticket creation
+      await interactionService.trackSupportTicket(
+        response._id,
+        'created',
+        { subject, priority, category }
+      )
+
       toast.success('Support ticket created successfully!')
       setSubject('')
       setDescription('')
@@ -217,16 +214,41 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
   const [attachments, setAttachments] = useState<File[]>([])
   const [currentTicket, setCurrentTicket] = useState<SupportTicket>({
     ...ticket,
-    messages: ticket.messages || []
+    replies: ticket.replies || []
   })
   const [isClosing, setIsClosing] = useState(false)
+
+  const downloadAttachment = async (filename: string, originalName: string) => {
+    try {
+      const response = await fetch(`/api/customer/support-ticket/attachment/${filename}`, {
+        method: 'GET',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to download attachment')
+      }
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = originalName
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error('Failed to download attachment:', error)
+      toast.error('Failed to download attachment')
+    }
+  }
 
   const fetchTicketDetails = async () => {
     try {
       const response = await api.get<SupportTicket>(`/api/customer/support-ticket/${ticket._id}`)
       setCurrentTicket({
         ...response,
-        messages: response.messages || []
+        replies: response.replies || []
       })
     } catch (error) {
       console.error('Failed to fetch ticket details:', error)
@@ -256,6 +278,14 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
       })
 
       await api.post(`/api/customer/support-ticket/${ticket._id}/reply`, formData)
+
+      // Track support ticket update
+      await interactionService.trackSupportTicket(
+        ticket._id,
+        'updated',
+        { subject: ticket.subject, message: reply }
+      )
+
       toast.success('Reply sent successfully!')
       setReply('')
       setAttachments([])
@@ -278,6 +308,14 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
     setIsClosing(true)
     try {
       await api.post(`/api/customer/support-ticket/${ticket._id}/close`, {})
+
+      // Track support ticket closure
+      await interactionService.trackSupportTicket(
+        ticket._id,
+        'closed',
+        { subject: ticket.subject, status: SupportTicketStatus.CLOSED }
+      )
+
       toast.success('Ticket closed successfully!')
       await fetchTicketDetails()
       onTicketUpdated()
@@ -333,44 +371,68 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
           )}
         </div>
         <div className="space-y-4">
-          {currentTicket.messages?.map((message, index) => (
+          <div className="p-4 rounded-lg bg-[var(--accent)] text-[var(--accent-foreground)]">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-2">
+                <UserIcon className="w-4 h-4" />
+                <span className="font-medium">You</span>
+              </div>
+              <time className="text-xs opacity-75">
+                {new Date(currentTicket.createdAt).toLocaleString()}
+              </time>
+            </div>
+            <p className="mt-2">{currentTicket.description}</p>
+            {currentTicket.attachments && currentTicket.attachments.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {currentTicket.attachments.map((attachment, index) => (
+                  <button
+                    key={index}
+                    onClick={() => downloadAttachment(attachment.url.split('/').pop() || '', attachment.name)}
+                    className="flex items-center gap-2 text-xs bg-[var(--card)]/50 px-2 py-1 rounded-md hover:bg-[var(--card)]/80 transition-colors"
+                  >
+                    <Paperclip className="w-3 h-3" />
+                    {attachment.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {currentTicket.replies?.map((reply, index) => (
             <div
-              key={index}
+              key={reply._id}
               className={`p-4 rounded-lg ${
-                message.isUser
+                reply.author === currentTicket.userId
                   ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                   : 'bg-[var(--accent)] text-[var(--accent-foreground)]'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  {message.isUser ? (
+                  {reply.author === currentTicket.userId ? (
                     <UserIcon className="w-4 h-4" />
                   ) : (
                     <Bot className="w-4 h-4" />
                   )}
                   <span className="font-medium">
-                    {message.isUser ? 'You' : 'Support Team'}
+                    {reply.author === currentTicket.userId ? 'You' : 'Support Team'}
                   </span>
                 </div>
                 <time className="text-xs opacity-75">
-                  {new Date(message.timestamp).toLocaleString()}
+                  {new Date(reply.timestamp).toLocaleString()}
                 </time>
               </div>
-              <p className="mt-2">{message.content}</p>
-              {message.attachments && message.attachments.length > 0 && (
+              <p className="mt-2">{reply.message}</p>
+              {reply.attachments && reply.attachments.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {message.attachments.map((attachment, index) => (
-                    <a
+                  {reply.attachments.map((attachment, index) => (
+                    <button
                       key={index}
-                      href={attachment.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      onClick={() => downloadAttachment(attachment.url.split('/').pop() || '', attachment.name)}
                       className="flex items-center gap-2 text-xs bg-[var(--card)]/50 px-2 py-1 rounded-md hover:bg-[var(--card)]/80 transition-colors"
                     >
                       <Paperclip className="w-3 h-3" />
                       {attachment.name}
-                    </a>
+                    </button>
                   ))}
                 </div>
               )}

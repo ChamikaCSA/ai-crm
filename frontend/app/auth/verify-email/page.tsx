@@ -8,6 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { interactionService } from '@/lib/interaction-service';
+import { User } from '@/lib/types';
+
+interface VerifyEmailResponse {
+  user: User;
+  access_token: string;
+}
 
 export default function VerifyEmailPage() {
   const router = useRouter();
@@ -25,7 +32,13 @@ export default function VerifyEmailPage() {
 
     const verifyEmail = async () => {
       try {
-        await api.post('/api/auth/verify-email', { token });
+        const response = await api.post<VerifyEmailResponse>('/api/auth/verify-email', { token });
+
+        // Track email verification
+        if (response.user?.email) {
+          await interactionService.trackEmailVerification(response.user.email, true);
+        }
+
         setStatus('success');
         // Automatically redirect to dashboard after a short delay
         setTimeout(() => {

@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { containerVariants, messageVariants } from '@/lib/animations'
 import { format } from 'date-fns'
+import { interactionService } from '@/lib/interaction-service'
 
 interface Message {
   id: string
@@ -70,6 +71,9 @@ export default function ChatPage() {
       const response = await api.post<ChatbotResponse>('/api/customer/chatbot', {
         message: userMessage.content,
       })
+
+      // Track chat interaction
+      await interactionService.trackChat(userMessage.content, response.sessionId)
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),

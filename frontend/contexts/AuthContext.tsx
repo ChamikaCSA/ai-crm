@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState, useCallback } from 'rea
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api-client'
 import { User, UserRole } from '@/lib/types'
+import { interactionService } from '@/lib/interaction-service'
 
 interface AuthContextType {
   user: User | null
@@ -54,6 +55,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user)
       document.cookie = `token=${access_token}; path=/; max-age=900` // 15 minutes
       document.cookie = `refresh_token=${refresh_token}; path=/; max-age=604800` // 7 days
+
+      // Track login interaction
+      await interactionService.trackLogin(email)
+
       router.push('/dashboard')
     } catch (error) {
       console.error('Login failed:', error)
@@ -63,6 +68,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // Track logout before clearing user state
+      if (user) {
+        await interactionService.trackLogout(user.email)
+      }
+
       setUser(null)
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'
       document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT'

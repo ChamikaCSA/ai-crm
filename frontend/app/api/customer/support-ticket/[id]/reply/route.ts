@@ -11,6 +11,8 @@ export async function POST(
 
     let data
     if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+      data = formData
     } else {
       data = await request.json()
     }

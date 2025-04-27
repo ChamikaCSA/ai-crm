@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/AuthContext';
+import { interactionService } from '@/lib/interaction-service';
 
 interface ChangePasswordDialogProps {
   userId: string;
@@ -27,6 +29,7 @@ export function ChangePasswordDialog({ userId }: ChangePasswordDialogProps) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -45,6 +48,12 @@ export function ChangePasswordDialog({ userId }: ChangePasswordDialogProps) {
         currentPassword,
         newPassword,
       });
+
+      // Track password change
+      if (user) {
+        await interactionService.trackPasswordChange(user.email);
+      }
+
       setSuccess(true);
       setCurrentPassword('');
       setNewPassword('');

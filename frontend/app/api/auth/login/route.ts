@@ -24,7 +24,16 @@ export async function POST(request: Request) {
 
     const data = await response.json()
 
-    // If MFA is required, return the response without setting cookies
+    // Set the refresh token cookie regardless of MFA status
+    const cookieStore = await cookies()
+    cookieStore.set('refresh_token', data.data.refresh_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    })
+
+    // If MFA is required, return the response without setting the access token
     if (data.data.user.isMfaEnabled) {
       return NextResponse.json({
         ...data.data,
@@ -32,19 +41,12 @@ export async function POST(request: Request) {
       })
     }
 
-    // If MFA is not required, set cookies and return the response
-    const cookieStore = await cookies()
+    // If MFA is not required, set the access token cookie and return the response
     cookieStore.set('token', data.data.access_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 60 * 15, // 15 minutes
-    })
-    cookieStore.set('refresh_token', data.data.refresh_token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
     })
 
     return NextResponse.json({

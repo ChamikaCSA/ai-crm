@@ -9,6 +9,7 @@ import { api } from '@/lib/api-client'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
+import { interactionService } from '@/lib/interaction-service'
 
 interface MfaSetupDialogProps {
   userId: string
@@ -43,6 +44,12 @@ export function MfaSetupDialog({ userId }: MfaSetupDialogProps) {
     try {
       setIsLoading(true)
       await api.post('/api/auth/mfa', { token })
+
+      // Track MFA enablement
+      if (user) {
+        await interactionService.trackMfaStatusChange(user.email, true)
+      }
+
       toast.success('MFA enabled successfully')
       await refreshUser()
       setIsOpen(false)
@@ -58,6 +65,12 @@ export function MfaSetupDialog({ userId }: MfaSetupDialogProps) {
     try {
       setIsLoading(true)
       await api.post('/api/auth/mfa', { action: 'disable' })
+
+      // Track MFA disablement
+      if (user) {
+        await interactionService.trackMfaStatusChange(user.email, false)
+      }
+
       toast.success('MFA disabled successfully')
       await refreshUser()
       setIsOpen(false)
