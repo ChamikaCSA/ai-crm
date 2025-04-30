@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from 'next-themes'
 import { Moon, Sun, Sparkles, User, Settings, HelpCircle, LogOut } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { ProfilePicture } from '@/components/ProfilePicture'
+import { ProfilePicture } from '@/components/profile-picture'
 import { cn } from '@/lib/utils'
 import { Switch } from '@/components/ui/switch'
 

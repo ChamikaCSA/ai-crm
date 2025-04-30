@@ -2,12 +2,12 @@
 
 import { redirect } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { CustomerDashboard } from '@/components/(main)/dashboard/customer/CustomerDashboard'
-import { SalesRepDashboard } from '@/components/(main)/dashboard/sales-rep/SalesRepDashboard'
-import { SalesManagerDashboard } from '@/components/(main)/dashboard/sales-manager/SalesManagerDashboard'
-import { MarketingSpecialistDashboard } from '@/components/(main)/dashboard/marketing-specialist/MarketingSpecialistDashboard'
-import { DataAnalystDashboard } from '@/components/(main)/dashboard/data-analyst/DataAnalystDashboard'
-import { AdminDashboard } from '@/components/(main)/dashboard/admin/AdminDashboard'
+import { CustomerDashboard } from '@/components/(main)/dashboard/customer/customer-dashboard'
+import { SalesRepDashboard } from '@/components/(main)/dashboard/sales-rep/sales-rep-dashboard'
+import { SalesManagerDashboard } from '@/components/(main)/dashboard/sales-manager/sales-manager-dashboard'
+import { MarketingSpecialistDashboard } from '@/components/(main)/dashboard/marketing-specialist/marketing-specialist-dashboard'
+import { DataAnalystDashboard } from '@/components/(main)/dashboard/data-analyst/data-analyst-dashboard'
+import { AdminDashboard } from '@/components/(main)/dashboard/admin/admin-dashboard'
 
 export default function DashboardPage() {
   const { user, isLoading } = useAuth()

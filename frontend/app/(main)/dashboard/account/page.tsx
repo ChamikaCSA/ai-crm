@@ -9,7 +9,7 @@ import { AccountDetails, InteractionType } from "@/lib/api-types";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { redirect } from "next/navigation";
-import { ProfilePicture } from '@/components/ProfilePicture'
+import { ProfilePicture } from '@/components/profile-picture'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'

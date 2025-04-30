@@ -6,10 +6,10 @@ import Link from 'next/link';
 import { api } from '@/lib/api-client';
 import { Button } from '@/components/ui/button';
 import { Loader2, Mail, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { AuthLayout } from '../../../components/auth/AuthLayout';
-import { AuthCard } from '../../../components/auth/AuthCard';
-import { AuthInput } from '../../../components/auth/AuthInput';
-import { AuthAlert } from '../../../components/auth/AuthAlert';
+import { AuthLayout } from '../../../components/auth/auth-layout';
+import { AuthCard } from '../../../components/auth/auth-card';
+import { AuthInput } from '../../../components/auth/auth-input';
+import { AuthAlert } from '../../../components/auth/auth-alert';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();

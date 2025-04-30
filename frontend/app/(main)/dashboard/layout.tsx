@@ -1,7 +1,7 @@
 'use client'
 
 import { redirect } from 'next/navigation'
-import { DashboardNav } from '@/components/(main)/dashboard/DashboardNav'
+import { DashboardNav } from '@/components/(main)/dashboard/dashboard-nav'
 import { useAuth } from '@/contexts/AuthContext'
 
 export default function DashboardLayout({
