@@ -32,7 +32,6 @@ const customerNavigation = [
 const salesRepNavigation = [
   { name: 'Overview', href: '/dashboard', icon: Home },
   { name: 'Leads', href: '/dashboard/leads', icon: Users },
-  { name: 'Tasks', href: '/dashboard/tasks', icon: ClipboardList },
   { name: 'Performance', href: '/dashboard/performance', icon: BarChart3 },
   { name: 'Account', href: '/dashboard/account', icon: User },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },

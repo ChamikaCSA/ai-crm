@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTheme } from 'next-themes'
-import { Moon, Sun, Sparkles, User, Settings, HelpCircle, LogOut } from 'lucide-react'
+import { Moon, Sun, Sparkles, User, Settings, HelpCircle, LogOut, Mail } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { ProfilePicture } from '@/components/profile-picture'
 import { cn } from '@/lib/utils'
@@ -94,6 +94,12 @@ export function Header() {
                       <Link href="/dashboard/support" className="flex items-center gap-2 cursor-pointer">
                         <HelpCircle className="w-4 h-4" />
                         Help & Support
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/contact" className="flex items-center gap-2 cursor-pointer">
+                        <Mail className="w-4 h-4" />
+                        Contact Us
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

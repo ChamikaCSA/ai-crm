@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { AuditModule } from './audit/audit.module';
 import { CustomerModule } from './customer/customer.module';
+import { LeadsModule } from './leads/leads.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
@@ -48,7 +49,9 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     AuthModule,
     UserModule,
     AuditModule,
-    CustomerModule  ],
+    CustomerModule,
+    LeadsModule
+  ],
   providers: [
     {
       provide: APP_FILTER,

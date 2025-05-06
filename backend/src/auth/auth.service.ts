@@ -7,8 +7,9 @@ import * as bcrypt from 'bcrypt';
 import * as speakeasy from 'speakeasy';
 import * as qrcode from 'qrcode';
 import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
-import { EmailService } from '../email/email.service';
-import { PasswordService } from './password.service';
+import { EmailService } from '../common/services/email.service';
+import { PasswordService } from '../common/services/password.service';
+import { EncryptionService } from '../common/services/encryption.service';
 import { APP_NAME } from '../config/strings';
 
 export interface UserResponse {
@@ -33,11 +34,12 @@ export interface UserResponse {
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel('User') private userModel: Model<User>,
-    @InjectModel('AuditLog') private auditLogModel: Model<AuditLog>,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(AuditLog.name) private auditLogModel: Model<AuditLog>,
     private jwtService: JwtService,
     private emailService: EmailService,
     private passwordService: PasswordService,
+    private encryptionService: EncryptionService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -121,7 +123,7 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    user.mfaSecret = secret.base32;
+    user.mfaSecret = this.encryptionService.encrypt(secret.base32);
     await user.save();
 
     const otpauthUrl = speakeasy.otpauthURL({
@@ -152,8 +154,10 @@ export class AuthService {
       throw new UnauthorizedException('MFA not set up');
     }
 
+    const decryptedSecret = this.encryptionService.decrypt(user.mfaSecret);
+
     const verified = speakeasy.totp.verify({
-      secret: user.mfaSecret,
+      secret: decryptedSecret,
       encoding: 'base32',
       token,
       window: 1,

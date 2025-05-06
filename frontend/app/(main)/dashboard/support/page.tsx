@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext'
 import { redirect } from 'next/navigation'
-import SupportPageClient from './SupportPageClient'
+import SupportPageClient from './client-page'
 
 export default function SupportPage() {
   const { user } = useAuth()

@@ -256,3 +256,32 @@ export interface SalesPipelineApiResponse extends ApiResponse<SalesPipeline[]> {
 export interface SalesRepStatsApiResponse extends ApiResponse<SalesRepStats> {}
 export interface LeadsApiResponse extends ApiResponse<Lead[]> {}
 export interface TasksApiResponse extends ApiResponse<Task[]> {}
+
+export enum LeadSource {
+  WEBSITE = 'website',
+  EMAIL = 'email',
+  PHONE = 'phone',
+  SOCIAL_MEDIA = 'social_media',
+  REFERRAL = 'referral',
+  LINKEDIN = 'linkedin',
+  TRADE_SHOW = 'trade_show',
+  OTHER = 'other',
+}
+
+export enum LeadStatus {
+  NEW = 'new',
+  CONTACTED = 'contacted',
+  QUALIFIED = 'qualified',
+  PROPOSAL = 'proposal',
+  NEGOTIATION = 'negotiation',
+  CLOSED_WON = 'closed_won',
+  CLOSED_LOST = 'closed_lost',
+}
+
+export enum PreferredContactMethod {
+  EMAIL = 'email',
+  PHONE = 'phone',
+  SMS = 'sms',
+  WHATSAPP = 'whatsapp',
+  LINKEDIN = 'linkedin',
+}

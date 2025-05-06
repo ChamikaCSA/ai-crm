@@ -5,9 +5,9 @@ import { User } from './schemas/user.schema';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
-import { PasswordService } from '../auth/password.service';
+import { PasswordService } from '../common/services/password.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { EmailService } from '../email/email.service';
+import { EmailService } from '../common/services/email.service';
 import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
 
 @Injectable()
