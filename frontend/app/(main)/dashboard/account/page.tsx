@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { User, Clock, CheckCircle2, AlertCircle, Activity, Ticket, Bell, Settings, Shield, MessageSquare, Mail, LogIn, FileText, Zap } from "lucide-react";
+import { User, Clock, CheckCircle2, AlertCircle, Activity, Ticket, Bell, Settings, Shield, MessageSquare, Mail, LogIn, FileText, Zap, ChevronUp, ChevronDown } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { toast } from "sonner";
 import { AccountDetails, InteractionType } from "@/lib/api-types";
@@ -16,7 +16,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Skeleton } from '@/components/ui/skeleton'
 import Link from 'next/link'
 import { containerVariants, itemVariants } from '@/lib/animations'
-import { interactionService } from '@/lib/interaction-service'
 
 const getInteractionIcon = (type: InteractionType) => {
   switch (type) {
@@ -47,6 +46,7 @@ export default function AccountPage() {
   const { user } = useAuth();
   const [accountDetails, setAccountDetails] = useState<AccountDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const INITIAL_ACTIVITIES_COUNT = 3;
 
   if (!user) {
     redirect("/auth/login");
@@ -325,7 +325,9 @@ export default function AccountPage() {
             ) : (
               <div className="space-y-4">
                 <AnimatePresence>
-                  {accountDetails.recentInteractions.map((interaction, index) => {
+                  {accountDetails.recentInteractions
+                    .slice(0, INITIAL_ACTIVITIES_COUNT)
+                    .map((interaction, index) => {
                     const Icon = getInteractionIcon(interaction.type);
                     return (
                       <motion.div

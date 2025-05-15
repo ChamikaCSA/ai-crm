@@ -298,7 +298,7 @@ export default function LeadsPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center">
-                        <div className="w-16 bg-secondary rounded-full h-2.5">
+                        <div className="w-16 bg-[var(--accent)]/50 rounded-full h-2.5">
                           <div
                             className="bg-primary h-2.5 rounded-full"
                             style={{ width: `${lead.leadScore}%` }}

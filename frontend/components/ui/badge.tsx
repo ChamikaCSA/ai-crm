@@ -10,17 +10,17 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/80",
+          "border-transparent bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/80 hover:text-[var(--primary-foreground)]",
         secondary:
-          "border-transparent bg-[var(--accent)]/10 text-[var(--text-secondary)] hover:bg-[var(--accent)]/20",
+          "border-transparent bg-[var(--accent)]/10 text-[var(--text-secondary)] hover:bg-[var(--accent)]/20 hover:text-[var(--text-secondary)]",
         destructive:
-          "border-transparent bg-[var(--destructive)] text-[var(--destructive-foreground)] hover:bg-[var(--destructive)]/80",
+          "border-transparent bg-[var(--destructive)] text-[var(--destructive-foreground)] hover:bg-[var(--destructive)]/80 hover:text-[var(--destructive-foreground)]",
         outline:
-          "border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:bg-[var(--accent)]/5",
+          "border-[var(--border)] bg-transparent text-[var(--text-secondary)] hover:bg-[var(--accent)]/5 hover:text-[var(--text-secondary)]",
         success:
-          "border-transparent bg-[var(--success)] text-[var(--success-foreground)] hover:bg-[var(--success)]/80",
+          "border-transparent bg-[var(--success)] text-[var(--success-foreground)] hover:bg-[var(--success)]/80 hover:text-[var(--success-foreground)]",
         warning:
-          "border-transparent bg-[var(--warning)] text-[var(--warning-foreground)] hover:bg-[var(--warning)]/80",
+          "border-transparent bg-[var(--warning)] text-[var(--warning-foreground)] hover:bg-[var(--warning)]/80 hover:text-[var(--warning-foreground)]",
       },
     },
     defaultVariants: {

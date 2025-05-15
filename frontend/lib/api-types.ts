@@ -215,17 +215,40 @@ export interface SalesPipeline {
 // Sales Rep Dashboard Types
 export interface SalesRepStats {
   activeLeads: number;
-  tasks: number;
+  lastWeekLeads: number;
   conversionRate: number;
+  lastMonthConversionRate: number;
 }
 
 export interface Lead {
   _id: string;
-  name: string;
-  company: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  source: string;
   status: 'new' | 'contacted' | 'qualified' | 'proposal' | 'negotiation';
-  value: number;
-  lastContact: string;
+  company: string;
+  jobTitle: string;
+  notes: string;
+  leadScore: number;
+  interactions: any[];
+  preferences: {
+    preferredContactMethod: string;
+    preferredContactTime: string;
+    interests: string[];
+    timeline: string;
+    painPoints: string[];
+    decisionMaker: boolean;
+  };
+  channelHistory: any[];
+  demographics: {
+    industry: string;
+    companySize: string;
+    location: string;
+  };
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Task {
@@ -285,3 +308,25 @@ export enum PreferredContactMethod {
   WHATSAPP = 'whatsapp',
   LINKEDIN = 'linkedin',
 }
+
+// Performance Dashboard Types
+export interface PerformanceMetric {
+  title: string
+  value: string
+  change: number
+}
+
+export interface PerformanceLead {
+  id: string
+  name: string
+  company: string
+  value: number
+  status: 'hot' | 'warm' | 'cold'
+}
+
+export interface PerformanceData {
+  metrics: PerformanceMetric[]
+  topLeads: PerformanceLead[]
+}
+
+export interface PerformanceDataApiResponse extends ApiResponse<PerformanceData> {}

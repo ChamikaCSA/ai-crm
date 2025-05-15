@@ -62,6 +62,9 @@ export class Lead extends Document {
   @Prop({ type: Number, default: 0 })
   leadScore: number;
 
+  @Prop({ type: Number, default: 0 })
+  value: number;
+
   @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Interaction' }] })
   interactions: MongooseSchema.Types.ObjectId[];
 
@@ -115,6 +118,9 @@ export class Lead extends Document {
     annualRevenue: number;
     employeeCount: number;
   };
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const LeadSchema = SchemaFactory.createForClass(Lead);

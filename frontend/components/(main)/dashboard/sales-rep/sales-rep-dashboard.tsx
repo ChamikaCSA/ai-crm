@@ -17,11 +17,11 @@ export function SalesRepDashboard() {
       try {
         const [statsResponse, leadsResponse] = await Promise.all([
           api.get<SalesRepStats>('/api/sales-rep/stats'),
-          api.get<Lead[]>('/api/sales-rep/leads')
+          api.get<{ data: Lead[] }>('/api/sales-rep/leads')
         ])
 
         setStats(statsResponse)
-        setLeads(Array.isArray(leadsResponse) ? leadsResponse : [])
+        setLeads(leadsResponse.data || [])
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
         toast.error('Failed to load dashboard data')
@@ -49,7 +49,9 @@ export function SalesRepDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats?.activeLeads || 0}</div>
-            <p className="text-sm text-[var(--text-tertiary)]">+5 from last week</p>
+            <p className="text-sm text-[var(--text-tertiary)]">
+              +{stats?.lastWeekLeads || 0} from last week
+            </p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
@@ -61,7 +63,17 @@ export function SalesRepDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">{stats?.conversionRate || 0}%</div>
-            <p className="text-sm text-[var(--text-tertiary)]">+2% from last month</p>
+            <p className="text-sm text-[var(--text-tertiary)]">
+              {stats?.conversionRate && stats?.lastMonthConversionRate ? (
+                stats.conversionRate > stats.lastMonthConversionRate ? (
+                  `+${stats.conversionRate - stats.lastMonthConversionRate}% from last month`
+                ) : (
+                  `${stats.conversionRate - stats.lastMonthConversionRate}% from last month`
+                )
+              ) : (
+                'No data from last month'
+              )}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -82,7 +94,7 @@ export function SalesRepDashboard() {
                 </p>
               </div>
             ) : (
-              leads.slice(0, 5).map((lead) => (
+              leads.map((lead) => (
                 <div
                   key={lead._id}
                   className="flex items-start gap-3 text-sm border-b border-[var(--border)] last:border-0 pb-4 last:pb-0 hover:bg-[var(--accent)]/5 p-2 rounded-lg transition-colors"
@@ -90,7 +102,7 @@ export function SalesRepDashboard() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-[var(--text-primary)]">
-                        {lead.name}
+                        {`${lead.firstName} ${lead.lastName}`}
                       </p>
                       <span
                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
@@ -113,22 +125,22 @@ export function SalesRepDashboard() {
                     </div>
                     <div className="flex items-center gap-4 mt-1">
                       <p className="text-[var(--text-tertiary)]">
-                        {lead.company}
+                        {lead.company || 'No company'}
                       </p>
                       <p className="text-[var(--text-tertiary)]">
-                        Value: ${lead.value.toLocaleString()}
+                        {lead.email}
                       </p>
                     </div>
                   </div>
                   <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
-                    Last contact: {new Date(lead.lastContact).toLocaleDateString()}
+                    Created: {new Date(lead.createdAt).toLocaleDateString()}
                   </time>
                 </div>
               ))
             )}
           </div>
           <div className="mt-4">
-            <Link href="/dashboard/sales-rep/leads">
+            <Link href="/dashboard/leads">
               <Button variant="outline" size="sm" className="w-full">
                 View All Leads
               </Button>

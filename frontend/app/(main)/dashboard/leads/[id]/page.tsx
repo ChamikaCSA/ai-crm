@@ -153,7 +153,6 @@ export default function LeadViewPage() {
             variant="ghost"
             size="icon"
             onClick={() => router.push('/dashboard/leads')}
-            className="hover:bg-secondary"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
@@ -239,7 +238,7 @@ export default function LeadViewPage() {
                     <h4 className="text-sm font-medium">Lead Score</h4>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex-1 bg-secondary rounded-full h-2.5">
+                    <div className="flex-1 bg-[var(--accent)]/50 rounded-full h-2.5">
                       <div
                         className="bg-primary h-2.5 rounded-full transition-all duration-300"
                         style={{ width: `${leadDetails.leadScore || 0}%` }}

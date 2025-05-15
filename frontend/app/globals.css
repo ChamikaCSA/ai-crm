@@ -324,3 +324,22 @@
     opacity: 1;
   }
 }
+
+/* Component Styles */
+.bg-primary {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+.bg-secondary {
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+.bg-primary-hover:hover {
+  background-color: var(--primary-hover);
+}
+
+.bg-secondary-hover:hover {
+  background-color: var(--secondary-hover);
+}

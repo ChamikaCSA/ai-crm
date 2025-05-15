@@ -12,6 +12,9 @@ import { LeadsModule } from './leads/leads.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
+import { AIModule } from './ai/ai.module';
+import { PerformanceModule } from './performance/performance.module';
+import { SalesRepModule } from './sales-rep/sales-rep.module';
 
 @Module({
   imports: [
@@ -50,7 +53,10 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
     UserModule,
     AuditModule,
     CustomerModule,
-    LeadsModule
+    LeadsModule,
+    AIModule,
+    PerformanceModule,
+    SalesRepModule
   ],
   providers: [
     {

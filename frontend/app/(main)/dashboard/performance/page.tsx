@@ -21,54 +21,43 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { containerVariants, itemVariants } from '@/lib/animations'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { api } from '@/lib/api-client'
+import { PerformanceMetric, PerformanceLead, PerformanceData } from '@/lib/api-types'
 
-interface Metric {
-  title: string
-  value: string
-  change: number
+interface Metric extends PerformanceMetric {
   icon: React.ReactNode
+  status: 'success' | 'warning' | 'destructive'
 }
 
 export default function PerformancePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const [metrics, setMetrics] = useState<Metric[]>([])
+  const [topLeads, setTopLeads] = useState<PerformanceLead[]>([])
+  const [selectedPeriod, setSelectedPeriod] = useState('this_month')
 
   useEffect(() => {
-    fetchMetrics()
-  }, [])
+    fetchPerformanceData()
+  }, [selectedPeriod])
 
-  const fetchMetrics = async () => {
+  const fetchPerformanceData = async () => {
     try {
       setIsLoading(true)
-      // Replace with actual API call
-      const mockMetrics: Metric[] = [
-        {
-          title: 'Total Sales',
-          value: '$45,231.89',
-          change: 20.1,
-          icon: <DollarSign className="h-4 w-4" />,
-        },
-        {
-          title: 'Active Leads',
-          value: '24',
-          change: 12.5,
-          icon: <Users className="h-4 w-4" />,
-        },
-        {
-          title: 'Conversion Rate',
-          value: '32.5%',
-          change: -2.4,
-          icon: <Target className="h-4 w-4" />,
-        },
-        {
-          title: 'Avg. Deal Size',
-          value: '$12,234',
-          change: 8.2,
-          icon: <TrendingUp className="h-4 w-4" />,
-        },
-      ]
-      setMetrics(mockMetrics)
+      const response = await api.get<PerformanceData>(`/api/performance?period=${selectedPeriod}`)
+
+      if (response.metrics) {
+        setMetrics(response.metrics.map(metric => ({
+          ...metric,
+          icon: getMetricIcon(metric.title),
+          status: getMetricStatus(metric.change)
+        })))
+      }
+
+      if (response.topLeads) {
+        setTopLeads(response.topLeads)
+      }
+
       setError(false)
     } catch (error) {
       console.error('Failed to fetch metrics:', error)
@@ -77,6 +66,36 @@ export default function PerformancePage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const getMetricIcon = (title: string) => {
+    switch (title) {
+      case 'Total Sales':
+        return <DollarSign className="h-4 w-4" />
+      case 'Active Leads':
+        return <Users className="h-4 w-4" />
+      case 'Conversion Rate':
+        return <Target className="h-4 w-4" />
+      case 'Avg. Deal Size':
+        return <TrendingUp className="h-4 w-4" />
+      default:
+        return <BarChart className="h-4 w-4" />
+    }
+  }
+
+  const getMetricStatus = (change: number): 'success' | 'warning' | 'destructive' => {
+    if (change >= 10) return 'success'
+    if (change >= 0) return 'warning'
+    return 'destructive'
+  }
+
+  const getLeadStatusBadge = (status: PerformanceLead['status']) => {
+    const variants: Record<PerformanceLead['status'], 'success' | 'destructive' | 'warning'> = {
+      hot: 'success',
+      warm: 'warning',
+      cold: 'destructive'
+    }
+    return <Badge variant={variants[status]} className="ml-2">{status}</Badge>
   }
 
   if (isLoading) {
@@ -122,7 +141,7 @@ export default function PerformancePage() {
             <div className="h-32 flex flex-col items-center justify-center text-[var(--text-tertiary)] space-y-2">
               <AlertCircle className="w-8 h-8 text-[var(--warning)]" />
               <p>Failed to load performance metrics</p>
-              <Button variant="outline" size="sm" onClick={fetchMetrics} className="group">
+              <Button variant="outline" size="sm" onClick={fetchPerformanceData} className="group">
                 Try Again
               </Button>
             </div>
@@ -151,7 +170,10 @@ export default function PerformancePage() {
                 Track your sales performance and metrics
               </CardDescription>
             </div>
-            <Select defaultValue="this_month">
+            <Select
+              value={selectedPeriod}
+              onValueChange={(value) => setSelectedPeriod(value)}
+            >
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select period" />
               </SelectTrigger>
@@ -170,6 +192,12 @@ export default function PerformancePage() {
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">
                       {metric.title}
+                      <Badge
+                        variant={metric.status}
+                        className="ml-2"
+                      >
+                        {metric.status}
+                      </Badge>
                     </CardTitle>
                     {metric.icon}
                   </CardHeader>
@@ -177,18 +205,18 @@ export default function PerformancePage() {
                     <div className="text-2xl font-bold">{metric.value}</div>
                     <div className="flex items-center pt-1">
                       {metric.change > 0 ? (
-                        <ArrowUpRight className="h-4 w-4 text-green-500" />
+                        <ArrowUpRight className="h-4 w-4 text-[var(--success)]" />
                       ) : (
-                        <ArrowDownRight className="h-4 w-4 text-red-500" />
+                        <ArrowDownRight className="h-4 w-4 text-[var(--destructive)]" />
                       )}
                       <span
                         className={`text-sm ${
-                          metric.change > 0 ? 'text-green-500' : 'text-red-500'
+                          metric.change > 0 ? 'text-[var(--success)]' : 'text-[var(--destructive)]'
                         }`}
                       >
                         {Math.abs(metric.change)}%
                       </span>
-                      <span className="text-sm text-muted-foreground ml-1">
+                      <span className="text-sm text-[var(--text-tertiary)] ml-1">
                         from last period
                       </span>
                     </div>
@@ -197,76 +225,31 @@ export default function PerformancePage() {
               ))}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">
-              <Card className="col-span-4 bg-[var(--card)]/50">
-                <CardHeader>
-                  <CardTitle>Sales Overview</CardTitle>
-                  <CardDescription>
-                    Your sales performance over time
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {/* Add chart component here */}
-                  <div className="h-[300px] flex items-center justify-center border rounded-lg">
-                    Sales Chart Placeholder
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="col-span-3 bg-[var(--card)]/50">
-                <CardHeader>
-                  <CardTitle>Top Performing Leads</CardTitle>
-                  <CardDescription>
-                    Your most promising opportunities
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div
-                        key={i}
-                        className="flex items-center justify-between space-x-4"
-                      >
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium leading-none">
-                            Lead {i}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            Company {i}
-                          </p>
-                        </div>
-                        <div className="text-sm font-medium">
-                          ${(Math.random() * 10000).toFixed(2)}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
             <Card className="mt-6 bg-[var(--card)]/50">
               <CardHeader>
-                <CardTitle>Activity Timeline</CardTitle>
+                <CardTitle>Top Performing Leads</CardTitle>
                 <CardDescription>
-                  Recent activities and interactions
+                  Your most promising opportunities
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-start space-x-4">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2" />
+                  {topLeads.map((lead) => (
+                    <div
+                      key={lead.id}
+                      className="flex items-center justify-between space-x-4"
+                    >
                       <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none">
-                          Activity {i}
+                        <p className="text-sm font-medium leading-none flex items-center">
+                          {lead.name}
+                          {getLeadStatusBadge(lead.status)}
                         </p>
-                        <p className="text-sm text-muted-foreground">
-                          Description of activity {i}
+                        <p className="text-sm text-[var(--text-tertiary)]">
+                          {lead.company}
                         </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date().toLocaleDateString()}
-                        </p>
+                      </div>
+                      <div className="text-sm font-medium">
+                        ${lead.value.toLocaleString()}
                       </div>
                     </div>
                   ))}
