@@ -330,3 +330,19 @@ export interface PerformanceData {
 }
 
 export interface PerformanceDataApiResponse extends ApiResponse<PerformanceData> {}
+
+export interface Forecast {
+  _id: string;
+  metric: string;
+  predictedValue: number;
+  confidence: number;
+  timestamp: string;
+}
+
+export interface Report {
+  _id: string;
+  name: string;
+  type: string;
+  format: string;
+  generatedAt: string;
+}

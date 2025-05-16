@@ -15,6 +15,7 @@ import { TransformInterceptor } from './common/interceptors/transform.intercepto
 import { AIModule } from './ai/ai.module';
 import { PerformanceModule } from './performance/performance.module';
 import { SalesRepModule } from './sales-rep/sales-rep.module';
+import { SalesManagerModule } from './sales-manager/sales-manager.module';
 
 @Module({
   imports: [
@@ -56,7 +57,8 @@ import { SalesRepModule } from './sales-rep/sales-rep.module';
     LeadsModule,
     AIModule,
     PerformanceModule,
-    SalesRepModule
+    SalesRepModule,
+    SalesManagerModule
   ],
   providers: [
     {

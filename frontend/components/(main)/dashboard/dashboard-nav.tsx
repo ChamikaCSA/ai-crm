@@ -39,9 +39,9 @@ const salesRepNavigation = [
 
 const salesManagerNavigation = [
   { name: 'Overview', href: '/dashboard', icon: Home },
-  { name: 'Team', href: '/dashboard/team', icon: Users },
-  { name: 'Performance', href: '/dashboard/performance', icon: BarChart3 },
-  { name: 'Targets', href: '/dashboard/targets', icon: Target },
+  { name: 'Pipeline', href: '/dashboard/pipeline', icon: BarChart3 },
+  { name: 'Forecasting', href: '/dashboard/forecasting', icon: Target },
+  { name: 'Reports', href: '/dashboard/reports', icon: ClipboardList },
   { name: 'Account', href: '/dashboard/account', icon: User },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
