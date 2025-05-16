@@ -30,8 +30,6 @@ export async function GET(request: NextRequest) {
       endpoint += `?metric=${metric}`
     }
 
-    console.log('Fetching from endpoint:', endpoint)
-
     const response = await fetch(endpoint, {
       headers: {
         'Authorization': `Bearer ${token.value}`,

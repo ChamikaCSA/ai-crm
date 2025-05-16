@@ -1,373 +1,594 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { useAuth } from '@/contexts/AuthContext'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import {
-  Megaphone,
-  BarChart,
-  Download,
-  TrendingUp,
-  Users,
-  AlertCircle,
-  Plus,
-  Mail,
-  MessageSquare,
-  Share2,
-  Target
-} from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Skeleton } from '@/components/ui/skeleton'
-import { containerVariants, itemVariants } from '@/lib/animations'
-import { toast } from 'sonner'
+import { Loader2, Plus, Target, BarChart3, TrendingUp, Users, Clock, MessageSquare, FileText, Tag } from 'lucide-react'
+import { Textarea } from '@/components/ui/textarea'
+
+interface Segment {
+  _id: string
+  name: string
+  type: string
+  criteria: any
+  aiInsights: {
+    keyCharacteristics: string[]
+    recommendations: string[]
+    predictedBehavior: string[]
+  }
+  createdAt: string
+  updatedAt: string
+}
 
 interface Campaign {
-  id: string
+  _id: string
   name: string
-  type: 'email' | 'social' | 'content'
-  status: 'active' | 'paused' | 'completed'
-  metrics: {
-    reach: number
-    engagement: number
-    conversion: number
-    roi: number
+  description: string
+  type: string
+  status: string
+  targetSegments: string[]
+  content: string
+  schedule: {
+    frequency: string
+    time: string
+    timezone: string
   }
-  targetAudience: string
-  startDate: string
-  endDate: string
+  createdAt: string
+  updatedAt: string
 }
 
 export default function CampaignsPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(false)
+  const { user } = useAuth()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [segments, setSegments] = useState<Segment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState('active')
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
+  const [campaignToDelete, setCampaignToDelete] = useState<string | null>(null)
+  const [newCampaign, setNewCampaign] = useState({
+    name: '',
+    type: '',
+    targetSegment: '',
+    startDate: '',
+    endDate: '',
+    budget: 0,
+    objectives: '',
+    description: '',
+    content: '',
+    schedule: {
+      frequency: 'daily',
+      time: '09:00',
+      timezone: 'UTC'
+    }
+  })
 
   useEffect(() => {
-    fetchCampaignData()
+    fetchCampaigns()
+    fetchSegments()
   }, [])
 
-  const fetchCampaignData = async () => {
+  const fetchSegments = async () => {
     try {
-      setIsLoading(true)
-      // Replace with actual API call
-      const mockCampaigns: Campaign[] = [
-        {
-          id: '1',
-          name: 'Q2 Product Launch',
-          type: 'email',
-          status: 'active',
-          metrics: {
-            reach: 15000,
-            engagement: 32,
-            conversion: 8.5,
-            roi: 245
-          },
-          targetAudience: 'Enterprise Customers',
-          startDate: '2024-04-01',
-          endDate: '2024-06-30'
-        },
-        // Add more campaigns
-      ]
-
-      setCampaigns(mockCampaigns)
-      setError(false)
+      const response = await fetch('/api/marketing-specialist/segments')
+      if (!response.ok) {
+        throw new Error('Failed to fetch segments')
+      }
+      const data = await response.json()
+      setSegments(Array.isArray(data) ? data : [])
     } catch (error) {
-      console.error('Failed to fetch campaign data:', error)
-      setError(true)
-      toast.error('Failed to fetch campaign data')
+      console.error('Error fetching segments:', error)
+    }
+  }
+
+  const fetchCampaigns = async () => {
+    try {
+      const response = await fetch('/api/marketing-specialist/campaigns')
+      if (!response.ok) {
+        throw new Error('Failed to fetch campaigns')
+      }
+      const data = await response.json()
+      setCampaigns(Array.isArray(data) ? data : [])
+    } catch (error) {
+      setError('Failed to load campaigns')
+      console.error('Error fetching campaigns:', error)
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const getStatusColor = (status: Campaign['status']) => {
-    const colors = {
-      active: 'bg-green-100 text-green-800',
-      paused: 'bg-yellow-100 text-yellow-800',
-      completed: 'bg-blue-100 text-blue-800',
+  const createCampaign = async () => {
+    try {
+      const response = await fetch('/api/marketing-specialist/campaigns', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newCampaign),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create campaign')
+      }
+
+      const data = await response.json()
+      setCampaigns([data.data, ...campaigns])
+      setShowCreateModal(false)
+      setNewCampaign({
+        name: '',
+        type: '',
+        targetSegment: '',
+        startDate: '',
+        endDate: '',
+        budget: 0,
+        objectives: '',
+        description: '',
+        content: '',
+        schedule: {
+          frequency: 'daily',
+          time: '09:00',
+          timezone: 'UTC'
+        }
+      })
+    } catch (error) {
+      setError('Failed to create campaign')
+      console.error('Error creating campaign:', error)
     }
-    return colors[status]
   }
 
-  const getTypeIcon = (type: Campaign['type']) => {
-    const icons = {
-      email: Mail,
-      social: Share2,
-      content: MessageSquare,
-    }
-    return icons[type]
+  const handleEditCampaign = (campaign: Campaign) => {
+    setSelectedCampaign(campaign)
+    setNewCampaign({
+      name: campaign.name,
+      type: campaign.type,
+      targetSegment: campaign.targetSegments[0] || '',
+      startDate: '',
+      endDate: '',
+      budget: 0,
+      objectives: '',
+      description: campaign.description,
+      content: campaign.content,
+      schedule: campaign.schedule
+    })
+    setShowEditModal(true)
   }
 
-  if (isLoading) {
+  const handleDeleteCampaign = async (campaignId: string) => {
+    setCampaignToDelete(campaignId)
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!campaignToDelete) return
+
+    try {
+      const response = await fetch(`/api/marketing-specialist/campaigns/${campaignToDelete}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to delete campaign')
+      }
+
+      setCampaigns(campaigns.filter(c => c._id !== campaignToDelete))
+      setShowDeleteModal(false)
+      setCampaignToDelete(null)
+    } catch (error) {
+      setError('Failed to delete campaign')
+      console.error('Error deleting campaign:', error)
+    }
+  }
+
+  const updateCampaign = async () => {
+    if (!selectedCampaign) return
+
+    try {
+      const response = await fetch(`/api/marketing-specialist/campaigns/${selectedCampaign._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newCampaign),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to update campaign')
+      }
+
+      const data = await response.json()
+      setCampaigns(campaigns.map(c => c._id === selectedCampaign._id ? data.data : c))
+      setShowEditModal(false)
+      setSelectedCampaign(null)
+    } catch (error) {
+      setError('Failed to update campaign')
+      console.error('Error updating campaign:', error)
+    }
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return 'bg-[var(--success)]'
+      case 'completed':
+        return 'bg-[var(--info)]'
+      case 'scheduled':
+        return 'bg-[var(--warning)]'
+      case 'paused':
+        return 'bg-[var(--error)]'
+      default:
+        return 'bg-[var(--muted)]'
+    }
+  }
+
+  const filteredCampaigns = campaigns.filter(campaign =>
+    campaign.status.toLowerCase() === activeTab.toLowerCase()
+  )
+
+  if (loading) {
     return (
-      <div className="container mx-auto px-4 py-8 space-y-8">
-        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-6 w-6" />
-                <Skeleton className="h-8 w-48" />
-              </div>
-              <Skeleton className="h-4 w-64" />
-            </div>
-            <Skeleton className="h-10 w-32" />
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {[1, 2, 3, 4].map((i) => (
-                <Card key={i} className="bg-[var(--card)]/50">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <Skeleton className="h-5 w-32" />
-                    <Skeleton className="h-4 w-4" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="h-8 w-24 mb-2" />
-                    <Skeleton className="h-4 w-32" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardContent className="p-6">
-            <div className="h-32 flex flex-col items-center justify-center text-[var(--text-tertiary)] space-y-2">
-              <AlertCircle className="w-8 h-8 text-[var(--warning)]" />
-              <p>Failed to load campaign data</p>
-              <Button variant="outline" size="sm" onClick={fetchCampaignData} className="group">
-                Try Again
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">{error}</p>
+          <Button onClick={fetchCampaigns}>Retry</Button>
+        </div>
       </div>
     )
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="container mx-auto px-4 py-8 space-y-8"
-    >
-      <motion.div variants={itemVariants}>
-        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div className="space-y-1">
-              <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                <Megaphone className="w-6 h-6 text-[var(--primary)]" />
-                Marketing Campaigns
-              </CardTitle>
-              <CardDescription className="text-[var(--text-secondary)]">
-                Manage and track your marketing campaigns
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Export Report
-              </Button>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Campaign
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card className="bg-[var(--card)]/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Active Campaigns
-                  </CardTitle>
-                  <Megaphone className="h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">12</div>
-                  <div className="flex items-center pt-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-green-500 ml-1">+2 new</span>
-                  </div>
-                </CardContent>
-              </Card>
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold">Marketing Campaigns</h1>
+        <Button onClick={() => setShowCreateModal(true)}>
+          <Plus className="mr-2 h-4 w-4" />
+          Create Campaign
+        </Button>
+      </div>
 
-              <Card className="bg-[var(--card)]/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Reach
-                  </CardTitle>
-                  <Users className="h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">45.2K</div>
-                  <div className="flex items-center pt-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-green-500 ml-1">+12.5%</span>
+      {/* Create Campaign Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowCreateModal(false)} />
+          <Card className="w-full max-w-2xl mx-4 my-8 relative z-50">
+            <CardHeader className="sticky top-0 bg-background z-10">
+              <CardTitle>Create New Campaign</CardTitle>
+            </CardHeader>
+            <CardContent className="max-h-[calc(100vh-200px)] overflow-y-auto">
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Campaign Name</Label>
+                  <Input
+                    id="name"
+                    value={newCampaign.name}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
+                    placeholder="Enter campaign name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="type">Campaign Type</Label>
+                  <Select
+                    value={newCampaign.type}
+                    onValueChange={(value) => setNewCampaign({ ...newCampaign, type: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select campaign type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="social_media">Social Media</SelectItem>
+                      <SelectItem value="content">Content</SelectItem>
+                      <SelectItem value="paid_advertising">Paid Advertising</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="targetSegment">Target Segment</Label>
+                  <Select
+                    value={newCampaign.targetSegment}
+                    onValueChange={(value) => setNewCampaign({ ...newCampaign, targetSegment: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select target segment" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {segments.map((segment) => (
+                        <SelectItem key={segment._id} value={segment._id}>
+                          {segment.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input
+                      id="startDate"
+                      type="date"
+                      value={newCampaign.startDate}
+                      onChange={(e) => setNewCampaign({ ...newCampaign, startDate: e.target.value })}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[var(--card)]/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Avg. Engagement
-                  </CardTitle>
-                  <BarChart className="h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">32.5%</div>
-                  <div className="flex items-center pt-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-green-500 ml-1">+5.2%</span>
+                  <div>
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={newCampaign.endDate}
+                      onChange={(e) => setNewCampaign({ ...newCampaign, endDate: e.target.value })}
+                    />
                   </div>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-[var(--card)]/50">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    ROI
-                  </CardTitle>
-                  <Target className="h-4 w-4" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">245%</div>
-                  <div className="flex items-center pt-1">
-                    <TrendingUp className="h-4 w-4 text-green-500" />
-                    <span className="text-sm text-green-500 ml-1">+18.5%</span>
+                </div>
+                <div>
+                  <Label htmlFor="budget">Budget</Label>
+                  <Input
+                    id="budget"
+                    type="number"
+                    value={newCampaign.budget}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, budget: Number(e.target.value) })}
+                    placeholder="Enter campaign budget"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="objectives">Campaign Objectives</Label>
+                  <Textarea
+                    id="objectives"
+                    value={newCampaign.objectives}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, objectives: e.target.value })}
+                    placeholder="Enter campaign objectives"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Campaign Description</Label>
+                  <Textarea
+                    id="description"
+                    value={newCampaign.description}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, description: e.target.value })}
+                    placeholder="Enter campaign description"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="content">Campaign Content</Label>
+                  <Textarea
+                    id="content"
+                    value={newCampaign.content}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, content: e.target.value })}
+                    placeholder="Enter campaign content"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <Label htmlFor="frequency">Schedule Frequency</Label>
+                    <Select
+                      value={newCampaign.schedule.frequency}
+                      onValueChange={(value) => setNewCampaign({
+                        ...newCampaign,
+                        schedule: { ...newCampaign.schedule, frequency: value }
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select frequency" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">
-              <Card className="col-span-4 bg-[var(--card)]/50">
-                <CardHeader>
-                  <CardTitle>Active Campaigns</CardTitle>
-                  <CardDescription>
-                    Current marketing campaigns and their performance
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {campaigns.map((campaign) => {
-                      const TypeIcon = getTypeIcon(campaign.type)
-                      return (
-                        <div key={campaign.id} className="flex items-center justify-between p-4 rounded-lg bg-[var(--card)]/50">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                              <TypeIcon className="w-5 h-5 text-[var(--primary)]" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{campaign.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {campaign.targetAudience} • {campaign.startDate} - {campaign.endDate}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-4">
-                            <div className="text-right">
-                              <p className="text-sm font-medium">${campaign.metrics.roi}% ROI</p>
-                              <p className="text-xs text-muted-foreground">
-                                {campaign.metrics.engagement}% engagement
-                              </p>
-                            </div>
-                            <Badge className={getStatusColor(campaign.status)}>
-                              {campaign.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      )
-                    })}
+                  <div>
+                    <Label htmlFor="time">Schedule Time</Label>
+                    <Input
+                      id="time"
+                      type="time"
+                      value={newCampaign.schedule.time}
+                      onChange={(e) => setNewCampaign({
+                        ...newCampaign,
+                        schedule: { ...newCampaign.schedule, time: e.target.value }
+                      })}
+                    />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <Label htmlFor="timezone">Timezone</Label>
+                    <Select
+                      value={newCampaign.schedule.timezone}
+                      onValueChange={(value) => setNewCampaign({
+                        ...newCampaign,
+                        schedule: { ...newCampaign.schedule, timezone: value }
+                      })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select timezone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="UTC">UTC</SelectItem>
+                        <SelectItem value="EST">EST</SelectItem>
+                        <SelectItem value="PST">PST</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={createCampaign}
+                    disabled={!newCampaign.name || !newCampaign.type || !newCampaign.targetSegment}
+                  >
+                    Create Campaign
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
-              <Card className="col-span-3 bg-[var(--card)]/50">
-                <CardHeader>
-                  <CardTitle>AI Insights</CardTitle>
-                  <CardDescription>
-                    Campaign optimization suggestions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                      <div key={i} className="p-3 rounded-lg bg-[var(--card)]/50">
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                          <div>
-                            <p className="text-sm font-medium">
-                              Insight {i}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              AI-generated insight about campaign performance and optimization
-                            </p>
-                          </div>
+      <Tabs defaultValue="active" className="space-y-4" onValueChange={setActiveTab}>
+        <TabsList>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="completed">Completed</TabsTrigger>
+          <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
+          <TabsTrigger value="paused">Paused</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value={activeTab} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4">
+            {filteredCampaigns.length > 0 ? (
+              filteredCampaigns.map((campaign) => (
+                <Card key={campaign._id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-xl flex items-center gap-2">
+                          <Target className="h-5 w-5" />
+                          {campaign.name}
+                        </CardTitle>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Created: {new Date(campaign.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Badge className={getStatusColor(campaign.status)}>
+                        {campaign.status}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <FileText className="h-4 w-4" />
+                          Description
+                        </h4>
+                        <div className="bg-[var(--card)] p-3 rounded-lg">
+                          <p className="text-[var(--text-secondary)]">{campaign.description}</p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
 
-            <Card className="mt-6 bg-[var(--card)]/50">
-              <CardHeader>
-                <CardTitle>Campaign Timeline</CardTitle>
-                <CardDescription>
-                  Upcoming and past campaign events
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="flex items-start space-x-4">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Megaphone className="w-4 h-4 text-muted-foreground" />
-                          <p className="text-sm font-medium leading-none">
-                            Campaign Event {i}
-                          </p>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            <Tag className="h-4 w-4" />
+                            Campaign Type
+                          </h4>
+                          <Badge variant="outline" className="bg-[var(--accent)]">
+                            {campaign.type}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          Description of campaign event {i}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date().toLocaleDateString()}
-                        </p>
+                        <div>
+                          <h4 className="font-semibold mb-2 flex items-center gap-2">
+                            <Clock className="h-4 w-4" />
+                            Schedule
+                          </h4>
+                          <Badge variant="outline" className="flex items-center gap-1">
+                            {campaign.schedule.frequency} at {campaign.schedule.time} {campaign.schedule.timezone}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Target Segments
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                          {campaign.targetSegments.length > 0 ? (
+                            campaign.targetSegments.map((segment, index) => (
+                              <Badge key={index} variant="secondary">
+                                {segment}
+                              </Badge>
+                            ))
+                          ) : (
+                            <p className="text-sm text-gray-500">No segments selected</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <h4 className="font-semibold mb-2 flex items-center gap-2">
+                          <MessageSquare className="h-4 w-4" />
+                          Campaign Content
+                        </h4>
+                        <div className="bg-[var(--card)] p-3 rounded-lg">
+                          <p className="text-[var(--text-secondary)] whitespace-pre-wrap">{campaign.content}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex justify-between items-center pt-4 border-t">
+                        <div className="text-[var(--text-tertiary)]">
+                          Last updated: {new Date(campaign.updatedAt).toLocaleDateString()}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            onClick={() => handleDeleteCampaign(campaign._id)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </div>
-                  ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-500">No {activeTab} campaigns found</p>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowDeleteModal(false)} />
+          <Card className="w-full max-w-md mx-4 relative z-50">
+            <CardHeader>
+              <CardTitle>Delete Campaign</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-[var(--text-secondary)]">
+                  Are you sure you want to delete this campaign? This action cannot be undone.
+                </p>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowDeleteModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={confirmDelete}
+                  >
+                    Delete
+                  </Button>
                 </div>
-              </CardContent>
-            </Card>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   )
 }

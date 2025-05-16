@@ -62,19 +62,24 @@ export class CustomerService {
 
   // Recommendation related methods
   async getRecommendations(userId: string): Promise<RecommendationDto[]> {
-    // Get user's recent interactions
-    const recentInteractions = await this.interactionModel
-      .find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .exec();
+    try {
+      // Get user's recent interactions
+      const recentInteractions = await this.interactionModel
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .exec();
 
-    // Use OpenAI to generate personalized recommendations
-    const recommendations = await this.aiService.generateRecommendations(
-      recentInteractions,
-    );
+      // Use OpenAI to generate personalized recommendations
+      const recommendations = await this.aiService.generateRecommendations(
+        recentInteractions,
+      );
 
-    return recommendations;
+      return recommendations;
+    } catch (error) {
+      console.error('Error getting recommendations:', error);
+      throw error;
+    }
   }
 
   async trackInteraction(

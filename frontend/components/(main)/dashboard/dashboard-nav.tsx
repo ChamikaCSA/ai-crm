@@ -49,8 +49,8 @@ const salesManagerNavigation = [
 const marketingNavigation = [
   { name: 'Overview', href: '/dashboard', icon: Home },
   { name: 'Campaigns', href: '/dashboard/campaigns', icon: Target },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Audience', href: '/dashboard/audience', icon: Users },
+  { name: 'Segments', href: '/dashboard/segments', icon: Users },
+  { name: 'Sentiment', href: '/dashboard/sentiment', icon: MessageSquare },
   { name: 'Account', href: '/dashboard/account', icon: User },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]

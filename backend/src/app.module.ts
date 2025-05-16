@@ -16,6 +16,7 @@ import { AIModule } from './ai/ai.module';
 import { PerformanceModule } from './performance/performance.module';
 import { SalesRepModule } from './sales-rep/sales-rep.module';
 import { SalesManagerModule } from './sales-manager/sales-manager.module';
+import { MarketingSpecialistModule } from './marketing-specialist/marketing-specialist.module';
 
 @Module({
   imports: [
@@ -58,7 +59,8 @@ import { SalesManagerModule } from './sales-manager/sales-manager.module';
     AIModule,
     PerformanceModule,
     SalesRepModule,
-    SalesManagerModule
+    SalesManagerModule,
+    MarketingSpecialistModule
   ],
   providers: [
     {

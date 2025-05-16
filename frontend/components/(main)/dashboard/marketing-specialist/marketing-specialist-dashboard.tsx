@@ -1,30 +1,69 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3, Users, Mail, Target, ArrowUp, ArrowDown } from 'lucide-react'
+import { BarChart3, Users, MessageSquare, Target, ArrowUp, ArrowDown } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { MarketingStats, Campaign, AudienceSegment } from '@/lib/api-types'
+
+interface DashboardOverview {
+  campaigns: {
+    active: number
+    total: number
+    metrics: {
+      totalReach: number
+      totalEngagement: number
+      totalConversion: number
+      totalRetention: number
+    }
+  }
+  segments: {
+    total: number
+    byType: Array<{ _id: string; count: number }>
+  }
+  sentiment: {
+    distribution: Array<{ _id: string; count: number; averageScore: number }>
+    recentAnalyses: Array<{
+      source: string
+      sentiment: string
+      score: number
+      createdAt: string
+    }>
+  }
+  recentActivity: {
+    campaigns: Array<{
+      name: string
+      status: string
+      createdAt: string
+      metrics: {
+        reach: number
+        engagement: number
+        conversion: number
+      }
+    }>
+    segments: Array<{
+      name: string
+      type: string
+      createdAt: string
+    }>
+    sentiments: Array<{
+      source: string
+      sentiment: string
+      score: number
+      createdAt: string
+    }>
+  }
+}
 
 export function MarketingSpecialistDashboard() {
-  const [stats, setStats] = useState<MarketingStats | null>(null)
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [audienceSegments, setAudienceSegments] = useState<AudienceSegment[]>([])
+  const [overview, setOverview] = useState<DashboardOverview | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [statsResponse, campaignsResponse, segmentsResponse] = await Promise.all([
-          api.get<MarketingStats>('/api/marketing/stats'),
-          api.get<Campaign[]>('/api/marketing/campaigns'),
-          api.get<AudienceSegment[]>('/api/marketing/audience-segments')
-        ])
-
-        setStats(statsResponse)
-        setCampaigns(Array.isArray(campaignsResponse) ? campaignsResponse : [])
-        setAudienceSegments(Array.isArray(segmentsResponse) ? segmentsResponse : [])
+        const response = await api.get<{ success: boolean; data: DashboardOverview }>('/api/marketing-specialist')
+        setOverview(response.data)
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
         toast.error('Failed to load dashboard data')
@@ -36,7 +75,7 @@ export function MarketingSpecialistDashboard() {
     fetchDashboardData()
   }, [])
 
-  if (isLoading) {
+  if (isLoading || !overview) {
     return null
   }
 
@@ -47,24 +86,12 @@ export function MarketingSpecialistDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <Users className="w-6 h-6 text-[var(--primary)]" />
-              Campaign Reach
+              Active Campaigns
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{(stats?.campaignReach || 0).toLocaleString()}</div>
-            <p className="text-sm text-[var(--text-tertiary)]">Total impressions</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Mail className="w-6 h-6 text-[var(--primary)]" />
-              Email Open Rate
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats?.emailOpenRate || 0}%</div>
-            <p className="text-sm text-[var(--text-tertiary)]">Average open rate</p>
+            <div className="text-3xl font-bold">{overview.campaigns.active}</div>
+            <p className="text-sm text-[var(--text-tertiary)]">of {overview.campaigns.total} total</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
@@ -75,44 +102,60 @@ export function MarketingSpecialistDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.conversionRate || 0}%</div>
-            <p className="text-sm text-[var(--text-tertiary)]">Campaign average</p>
+            <div className="text-3xl font-bold">
+              {((overview.campaigns.metrics.totalConversion / overview.campaigns.total) * 100).toFixed(1)}%
+            </div>
+            <p className="text-sm text-[var(--text-tertiary)]">Average conversion</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <MessageSquare className="w-6 h-6 text-[var(--primary)]" />
+              Sentiment Score
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">
+              {overview.sentiment.distribution.reduce((acc, curr) => acc + curr.averageScore, 0) /
+               overview.sentiment.distribution.length || 0}
+            </div>
+            <p className="text-sm text-[var(--text-tertiary)]">Average sentiment</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
               <BarChart3 className="w-6 h-6 text-[var(--primary)]" />
-              ROI
+              Total Segments
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{stats?.roi || 0}x</div>
-            <p className="text-sm text-[var(--text-tertiary)]">Return on investment</p>
+            <div className="text-3xl font-bold">{overview.segments.total}</div>
+            <p className="text-sm text-[var(--text-tertiary)]">Active segments</p>
           </CardContent>
         </Card>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <BarChart3 className="w-6 h-6 text-[var(--primary)]" />
-              Campaign Performance
+              <Target className="w-6 h-6 text-[var(--primary)]" />
+              Recent Campaigns
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {campaigns.length === 0 ? (
+              {overview.recentActivity.campaigns.length === 0 ? (
                 <div className="text-center py-8">
-                  <BarChart3 className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                  <p className="text-[var(--text-tertiary)]">
-                    No active campaigns
-                  </p>
+                  <Target className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-[var(--text-tertiary)]">No recent campaigns</p>
                 </div>
               ) : (
-                campaigns.slice(0, 5).map((campaign) => (
+                overview.recentActivity.campaigns.map((campaign) => (
                   <div
-                    key={campaign._id}
+                    key={campaign.name}
                     className="flex items-start gap-3 text-sm border-b border-[var(--border)] last:border-0 pb-4 last:pb-0 hover:bg-[var(--accent)]/5 p-2 rounded-lg transition-colors"
                   >
                     <div className="flex-1">
@@ -134,25 +177,22 @@ export function MarketingSpecialistDashboard() {
                       </div>
                       <div className="flex items-center gap-4 mt-1">
                         <p className="text-[var(--text-tertiary)]">
-                          Reach: {campaign.reach.toLocaleString()}
+                          Reach: {campaign.metrics.reach.toLocaleString()}
                         </p>
                         <p className="text-[var(--text-tertiary)]">
-                          Engagement: {campaign.engagement}%
-                        </p>
-                        <p className="text-[var(--text-tertiary)]">
-                          Conversion: {campaign.conversion}%
+                          Engagement: {campaign.metrics.engagement}%
                         </p>
                       </div>
                     </div>
                     <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
-                      {new Date(campaign.startDate).toLocaleDateString()}
+                      {new Date(campaign.createdAt).toLocaleDateString()}
                     </time>
                   </div>
                 ))
               )}
             </div>
             <div className="mt-4">
-              <Link href="/dashboard/marketing/campaigns">
+              <Link href="/dashboard/campaigns">
                 <Button variant="outline" size="sm" className="w-full">
                   View All Campaigns
                 </Button>
@@ -160,55 +200,59 @@ export function MarketingSpecialistDashboard() {
             </div>
           </CardContent>
         </Card>
+
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Users className="w-6 h-6 text-[var(--primary)]" />
-              Audience Analytics
+              <MessageSquare className="w-6 h-6 text-[var(--primary)]" />
+              Recent Sentiment Analysis
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {audienceSegments.length === 0 ? (
+              {overview.recentActivity.sentiments.length === 0 ? (
                 <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                  <p className="text-[var(--text-tertiary)]">
-                    No audience segments available
-                  </p>
+                  <MessageSquare className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-[var(--text-tertiary)]">No recent sentiment analysis</p>
                 </div>
               ) : (
-                audienceSegments.slice(0, 5).map((segment) => (
+                overview.recentActivity.sentiments.map((sentiment, index) => (
                   <div
-                    key={segment._id}
+                    key={index}
                     className="flex items-start gap-3 text-sm border-b border-[var(--border)] last:border-0 pb-4 last:pb-0 hover:bg-[var(--accent)]/5 p-2 rounded-lg transition-colors"
                   >
                     <div className="flex-1">
+                      <div className="flex items-center gap-2">
                       <p className="font-medium text-[var(--text-primary)]">
-                        {segment.name}
+                          {sentiment.source}
                       </p>
-                      <div className="flex items-center gap-4 mt-1">
-                        <p className="text-[var(--text-tertiary)]">
-                          Size: {segment.size.toLocaleString()}
-                        </p>
-                        <p className="text-[var(--text-tertiary)]">
-                          Engagement: {segment.engagement}%
-                        </p>
-                        <p className="text-[var(--text-tertiary)]">
-                          Conversion: {segment.conversion}%
-                        </p>
+                        <span
+                          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            sentiment.sentiment === 'positive'
+                              ? 'bg-[var(--success)]/10 text-[var(--success)]'
+                              : sentiment.sentiment === 'negative'
+                              ? 'bg-[var(--destructive)]/10 text-[var(--destructive)]'
+                              : 'bg-[var(--warning)]/10 text-[var(--warning)]'
+                          }`}
+                        >
+                          {sentiment.sentiment}
+                        </span>
                       </div>
+                      <p className="text-[var(--text-tertiary)] mt-1">
+                        Score: {sentiment.score.toFixed(2)}
+                      </p>
                     </div>
                     <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
-                      Updated: {new Date(segment.lastUpdated).toLocaleDateString()}
+                      {new Date(sentiment.createdAt).toLocaleDateString()}
                     </time>
                   </div>
                 ))
               )}
             </div>
             <div className="mt-4">
-              <Link href="/dashboard/marketing/audience">
+              <Link href="/dashboard/sentiment">
                 <Button variant="outline" size="sm" className="w-full">
-                  View All Segments
+                  View All Sentiment Analysis
                 </Button>
               </Link>
             </div>
