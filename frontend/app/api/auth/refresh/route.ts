@@ -3,13 +3,13 @@ import { cookies } from 'next/headers'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { refresh_token } = body
+    const cookieStore = await cookies()
+    const refreshToken = cookieStore.get('refresh_token')?.value
 
-    if (!refresh_token) {
+    if (!refreshToken) {
       return NextResponse.json(
-        { error: 'Refresh token is required' },
-        { status: 400 }
+        { error: 'No refresh token found' },
+        { status: 401 }
       )
     }
 
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ refresh_token }),
+      body: JSON.stringify({ refresh_token: refreshToken }),
     })
 
     if (!response.ok) {
@@ -29,8 +29,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const data = await response.json()
-    const cookieStore = await cookies()
+    const data = (await response.json()).data
 
     // Set the access token cookie
     cookieStore.set('token', data.access_token, {

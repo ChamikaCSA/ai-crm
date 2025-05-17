@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
-import { api } from '@/lib/api-client'
-import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 // GET /api/sales-rep/leads/[id] - Get a specific lead
 export async function GET(
@@ -8,10 +7,32 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const response = await api.get<ApiResponse<any>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/sales-rep/leads/${params.id}`
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/api/sales-rep/leads/${params.id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      }
     )
-    return NextResponse.json(response.data)
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch lead')
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Failed to fetch lead:', error)
     return NextResponse.json(
@@ -27,12 +48,35 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const data = await request.json()
-    const response = await api.put<ApiResponse<any>>(
+    const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/sales-rep/leads/${params.id}`,
-      data
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      }
     )
-    return NextResponse.json(response.data)
+
+    if (!response.ok) {
+      throw new Error('Failed to update lead')
+    }
+
+    const responseData = await response.json()
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('Failed to update lead:', error)
     return NextResponse.json(
@@ -42,18 +86,41 @@ export async function PUT(
   }
 }
 
-// PUT /api/sales-rep/leads/[id]/status - Update lead status
+// PATCH /api/sales-rep/leads/[id]/status - Update lead status
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const data = await request.json()
-    const response = await api.put<ApiResponse<any>>(
+    const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/api/sales-rep/leads/${params.id}/status`,
-      data
+      {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      }
     )
-    return NextResponse.json(response.data)
+
+    if (!response.ok) {
+      throw new Error('Failed to update lead status')
+    }
+
+    const responseData = await response.json()
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('Failed to update lead status:', error)
     return NextResponse.json(

@@ -7,7 +7,7 @@ export enum SalesManagerForecastMetric {
   CONVERSION = 'conversion'
 }
 
-@Schema({ timestamps: true, collection: 'sales_manager_forecasts' })
+@Schema({ timestamps: true })
 export class SalesManagerForecast extends Document {
   @Prop({ required: true, enum: SalesManagerForecastMetric })
   metric: SalesManagerForecastMetric;

@@ -1,11 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
+import { cookies } from 'next/headers'
 
 export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const ticketId = params.id
     const contentType = request.headers.get('content-type') || ''
 
@@ -17,7 +28,15 @@ export async function POST(
       data = await request.json()
     }
 
-    const response = await api.post(`${process.env.NEXT_PUBLIC_API_URL}/customer/support-ticket/${ticketId}/reply`, data)
+    const response = await api.post(
+      `${process.env.NEXT_PUBLIC_API_URL}/customer/support-ticket/${ticketId}/reply`,
+      data,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
+    )
 
     return NextResponse.json(response)
   } catch (error) {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 interface OverviewData {
   summary: {
@@ -40,8 +41,23 @@ interface OverviewData {
 // GET /api/data-analyst/dashboard/overview - Get dashboard overview data
 export async function GET() {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.get<ApiResponse<OverviewData>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/dashboard/overview`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/dashboard/overview`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {

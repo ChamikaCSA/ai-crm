@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 interface Trend {
-  category: string
+  id: string
+  name: string
   value: number
-  previousValue: number
   change: number
   recommendations: string[]
 }
@@ -13,8 +14,23 @@ interface Trend {
 // GET /api/data-analyst/dashboard/trends - Get dashboard trends
 export async function GET() {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.get<ApiResponse<Trend[]>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/dashboard/trends`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/dashboard/trends`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {

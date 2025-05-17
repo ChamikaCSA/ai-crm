@@ -1,16 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
+import { cookies } from 'next/headers'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { filename: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/customer/support-ticket/attachment/${params.filename}`,
       {
         headers: {
-          'Authorization': `Bearer ${request.cookies.get('token')?.value}`
+          'Authorization': `Bearer ${token}`
         }
       }
     )

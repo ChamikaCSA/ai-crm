@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 interface Report {
   id: string
@@ -29,8 +30,23 @@ interface Report {
 // GET /api/data-analyst/reports - Get all reports
 export async function GET() {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.get<ApiResponse<Report[]>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/reports`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/reports`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {
@@ -45,10 +61,25 @@ export async function GET() {
 // POST /api/data-analyst/reports - Generate a new report
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const data = await request.json()
     const response = await api.post<ApiResponse<Report>>(
       `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/reports`,
-      data
+      data,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {

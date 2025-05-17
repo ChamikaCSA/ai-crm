@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 interface Forecast {
   id: string
@@ -27,8 +28,23 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.get<ApiResponse<Forecast>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts/${params.id}`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts/${params.id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {
@@ -46,8 +62,23 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.delete<ApiResponse<void>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts/${params.id}`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts/${params.id}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {

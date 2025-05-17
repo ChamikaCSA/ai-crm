@@ -4,7 +4,7 @@ import { Document } from 'mongoose';
 export type DataAnalystForecastMetric = 'customer_lifetime_value' | 'churn_rate' | 'market_trends' | 'customer_segments';
 export type AnalysisType = 'time_series' | 'regression' | 'classification' | 'clustering';
 
-@Schema({ timestamps: true, collection: 'data_analyst_forecasts' })
+@Schema({ timestamps: true })
 export class DataAnalystForecast extends Document {
   @Prop({ required: true, enum: ['customer_lifetime_value', 'churn_rate', 'market_trends', 'customer_segments'] })
   metric: DataAnalystForecastMetric;

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 interface Forecast {
   id: string
@@ -24,8 +25,23 @@ interface Forecast {
 // GET /api/data-analyst/forecasts/latest - Get latest forecasts for each metric
 export async function GET() {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.get<ApiResponse<Record<string, Forecast>>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts/latest`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts/latest`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {

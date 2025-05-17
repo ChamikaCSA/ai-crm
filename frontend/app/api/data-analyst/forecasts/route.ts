@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { api } from '@/lib/api-client'
 import { ApiResponse } from '@/lib/api-types'
+import { cookies } from 'next/headers'
 
 interface Forecast {
   id: string
@@ -24,8 +25,23 @@ interface Forecast {
 // GET /api/data-analyst/forecasts - Get all forecasts
 export async function GET() {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const response = await api.get<ApiResponse<Forecast[]>>(
-      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts`
+      `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {
@@ -40,10 +56,25 @@ export async function GET() {
 // POST /api/data-analyst/forecasts - Create a new forecast
 export async function POST(request: Request) {
   try {
+    const cookieStore = await cookies()
+    const token = cookieStore.get('token')?.value
+
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      )
+    }
+
     const data = await request.json()
     const response = await api.post<ApiResponse<Forecast>>(
       `${process.env.NEXT_PUBLIC_API_URL}/data-analyst/forecasts`,
-      data
+      data,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      }
     )
     return NextResponse.json(response.data)
   } catch (error) {

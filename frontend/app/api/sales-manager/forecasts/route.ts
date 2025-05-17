@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     const cookieStore = await cookies()
-    const token = cookieStore.get('token')
+    const token = cookieStore.get('token')?.value
 
     if (!token) {
       return NextResponse.json(
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
 
     const response = await fetch(endpoint, {
       headers: {
-        'Authorization': `Bearer ${token.value}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     })

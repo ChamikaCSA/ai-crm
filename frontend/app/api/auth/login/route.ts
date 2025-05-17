@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/'
     })
 
     // If MFA is required, return the response without setting the access token
@@ -47,6 +48,7 @@ export async function POST(request: Request) {
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
       maxAge: 60 * 15, // 15 minutes
+      path: '/'
     })
 
     return NextResponse.json({

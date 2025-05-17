@@ -51,33 +51,6 @@ export async function apiClient<T>(
   endpoint: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  let token: string | null = null;
-  let refreshToken: string | null = null;
-
-  // Try to get tokens from cookies in both server and client environments
-  if (typeof window !== "undefined") {
-    // Client-side
-    const cookies = document.cookie.split(";");
-    const tokenCookie = cookies.find((cookie) =>
-      cookie.trim().startsWith("token=")
-    );
-    const refreshTokenCookie = cookies.find((cookie) =>
-      cookie.trim().startsWith("refresh_token=")
-    );
-    if (tokenCookie) {
-      token = tokenCookie.split("=")[1].trim();
-    }
-    if (refreshTokenCookie) {
-      refreshToken = refreshTokenCookie.split("=")[1].trim();
-    }
-  } else {
-    // Server-side
-    const { cookies } = await import('next/headers');
-    const cookieStore = await cookies();
-    token = cookieStore.get('token')?.value || null;
-    refreshToken = cookieStore.get('refresh_token')?.value || null;
-  }
-
   const headers: Record<string, string> = {
     ...options.headers,
   };
@@ -87,10 +60,6 @@ export async function apiClient<T>(
     headers["Content-Type"] = "application/json";
   }
 
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
-
   const response = await fetch(endpoint, {
     method: options.method || "GET",
     headers,
@@ -98,23 +67,37 @@ export async function apiClient<T>(
     credentials: 'include',
   });
 
-  // If the token is expired and we have a refresh token, try to refresh
-  if (response.status === 401 && refreshToken && typeof window !== "undefined") {
+  // If the token is expired, try to refresh
+  if (response.status === 401 && typeof window !== "undefined") {
+    // Only attempt refresh if we're in dashboard routes
+    if (!window.location.pathname.startsWith('/dashboard')) {
+      throw new ApiError(401, "Unauthorized");
+    }
+
     if (!isRefreshing) {
       isRefreshing = true;
       try {
-        const { access_token, refresh_token } = await refreshTokens(refreshToken);
+        const refreshResponse = await fetch('/api/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (!refreshResponse.ok) {
+          const error = await refreshResponse.json();
+          throw new Error(error.error || 'Failed to refresh token');
+        }
+
+        const { access_token } = await refreshResponse.json();
 
         // Notify all subscribers
         onRefreshComplete(access_token);
 
-        // Retry the original request with the new token
-        headers["Authorization"] = `Bearer ${access_token}`;
+        // Retry the original request
         const retryResponse = await fetch(endpoint, {
           method: options.method || "GET",
           headers,
           body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
-          credentials: 'include', // Important: Include cookies in the request
+          credentials: 'include',
         });
 
         if (!retryResponse.ok) {
@@ -132,29 +115,27 @@ export async function apiClient<T>(
       } finally {
         isRefreshing = false;
       }
-    } else {
-      // If a refresh is already in progress, wait for it to complete
-      return new Promise((resolve, reject) => {
-        subscribeTokenRefresh((newToken) => {
-          headers["Authorization"] = `Bearer ${newToken}`;
-          fetch(endpoint, {
-            method: options.method || "GET",
-            headers,
-            body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
-            credentials: 'include',
-          })
-            .then(response => response.json())
-            .then(data => {
-              if (!response.ok) {
-                reject(new ApiError(response.status, data.error || "An error occurred"));
-              } else {
-                resolve(data);
-              }
-            })
-            .catch(reject);
-        });
-      });
     }
+    // If a refresh is already in progress, wait for it to complete
+    return new Promise((resolve, reject) => {
+      subscribeTokenRefresh((newToken) => {
+        fetch(endpoint, {
+          method: options.method || "GET",
+          headers,
+          body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
+          credentials: 'include',
+        })
+          .then(response => response.json())
+          .then(data => {
+            if (!response.ok) {
+              reject(new ApiError(response.status, data.error || "An error occurred"));
+            } else {
+              resolve(data);
+            }
+          })
+          .catch(reject);
+      });
+    });
   }
 
   const data = await response.json();
@@ -168,12 +149,14 @@ export async function apiClient<T>(
 
 // Helper methods for common operations
 export const api = {
-  get: <T>(endpoint: string) => apiClient<T>(endpoint),
-  post: <T>(endpoint: string, data: any) =>
-    apiClient<T>(endpoint, { method: "POST", body: data }),
-  put: <T>(endpoint: string, data: any) =>
-    apiClient<T>(endpoint, { method: "PUT", body: data }),
-  patch: <T>(endpoint: string, data: any) =>
-    apiClient<T>(endpoint, { method: "PATCH", body: data }),
-  delete: <T>(endpoint: string) => apiClient<T>(endpoint, { method: "DELETE" }),
+  get: <T>(endpoint: string, options?: { headers?: Record<string, string> }) =>
+    apiClient<T>(endpoint, { ...options }),
+  post: <T>(endpoint: string, data: any, options?: { headers?: Record<string, string> }) =>
+    apiClient<T>(endpoint, { method: "POST", body: data, ...options }),
+  put: <T>(endpoint: string, data: any, options?: { headers?: Record<string, string> }) =>
+    apiClient<T>(endpoint, { method: "PUT", body: data, ...options }),
+  patch: <T>(endpoint: string, data: any, options?: { headers?: Record<string, string> }) =>
+    apiClient<T>(endpoint, { method: "PATCH", body: data, ...options }),
+  delete: <T>(endpoint: string, options?: { headers?: Record<string, string> }) =>
+    apiClient<T>(endpoint, { method: "DELETE", ...options }),
 };
