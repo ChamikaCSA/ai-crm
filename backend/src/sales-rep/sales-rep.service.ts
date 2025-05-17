@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import { Lead } from '../leads/schemas/lead.schema';
+import { Lead, LeadStatus } from './schemas/lead.schema';
+import { CreateLeadDto } from './dto/create-lead.dto';
 
 @Injectable()
 export class SalesRepService {
@@ -69,5 +70,91 @@ export class SalesRepService {
       .sort({ lastContact: -1 })
       .limit(5)
       .exec();
+  }
+
+  async createLead(createLeadDto: CreateLeadDto): Promise<Lead> {
+    const createdLead = new this.leadModel(createLeadDto);
+    return createdLead.save();
+  }
+
+  async getLead(id: string): Promise<Lead> {
+    const lead = await this.leadModel.findById(id).exec();
+    if (!lead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+    return lead;
+  }
+
+  async updateLead(id: string, updateData: Partial<Lead>): Promise<Lead> {
+    const updatedLead = await this.leadModel
+      .findByIdAndUpdate(id, updateData, { new: true })
+      .exec();
+    if (!updatedLead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+    return updatedLead;
+  }
+
+  async updateLeadStatus(id: string, status: LeadStatus): Promise<Lead> {
+    const updatedLead = await this.leadModel
+      .findByIdAndUpdate(id, { status }, { new: true })
+      .exec();
+    if (!updatedLead) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+    return updatedLead;
+  }
+
+  async deleteLead(id: string): Promise<void> {
+    const result = await this.leadModel.deleteOne({ _id: id }).exec();
+    if (result.deletedCount === 0) {
+      throw new NotFoundException(`Lead with ID ${id} not found`);
+    }
+  }
+
+  async getPerformanceData(period: string) {
+    const now = new Date();
+    let startDate: Date;
+
+    switch (period) {
+      case 'this_week':
+        startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        break;
+      case 'this_month':
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        break;
+      case 'this_quarter':
+        startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+        break;
+      case 'this_year':
+        startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        break;
+      default:
+        startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    }
+
+    const [totalLeads, qualifiedLeads, topLeads] = await Promise.all([
+      this.leadModel.countDocuments({ createdAt: { $gte: startDate } }),
+      this.leadModel.countDocuments({
+        status: { $in: ['qualified', 'proposal'] },
+        createdAt: { $gte: startDate }
+      }),
+      this.leadModel
+        .find({ createdAt: { $gte: startDate } })
+        .sort({ value: -1 })
+        .limit(5)
+        .exec()
+    ]);
+
+    const conversionRate = totalLeads > 0
+      ? Math.round((qualifiedLeads / totalLeads) * 100)
+      : 0;
+
+    return {
+      totalLeads,
+      qualifiedLeads,
+      conversionRate,
+      topLeads
+    };
   }
 }

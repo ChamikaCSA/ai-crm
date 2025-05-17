@@ -1,16 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Schema as MongooseSchema } from 'mongoose';
-
-export enum LeadSource {
-  WEBSITE = 'website',
-  EMAIL = 'email',
-  PHONE = 'phone',
-  SOCIAL_MEDIA = 'social_media',
-  REFERRAL = 'referral',
-  LINKEDIN = 'linkedin',
-  TRADE_SHOW = 'trade_show',
-  OTHER = 'other',
-}
+import { ApiProperty } from '@nestjs/swagger';
 
 export enum LeadStatus {
   NEW = 'new',
@@ -20,6 +10,15 @@ export enum LeadStatus {
   NEGOTIATION = 'negotiation',
   CLOSED_WON = 'closed_won',
   CLOSED_LOST = 'closed_lost',
+}
+
+export enum LeadSource {
+  WEBSITE = 'website',
+  REFERRAL = 'referral',
+  SOCIAL_MEDIA = 'social_media',
+  EMAIL = 'email',
+  PHONE = 'phone',
+  OTHER = 'other',
 }
 
 export enum PreferredContactMethod {
@@ -32,38 +31,51 @@ export enum PreferredContactMethod {
 
 @Schema({ timestamps: true })
 export class Lead extends Document {
+  @ApiProperty({ description: 'Company name' })
   @Prop({ required: true })
-  firstName: string;
+  companyName: string;
 
+  @ApiProperty({ description: 'Contact person name' })
   @Prop({ required: true })
-  lastName: string;
+  contactName: string;
 
+  @ApiProperty({ description: 'Contact email' })
   @Prop({ required: true })
   email: string;
 
+  @ApiProperty({ description: 'Contact phone number' })
   @Prop()
   phone: string;
 
-  @Prop({ required: true, enum: LeadSource })
-  source: LeadSource;
-
-  @Prop({ required: true, enum: LeadStatus, default: LeadStatus.NEW })
+  @ApiProperty({ description: 'Lead status', enum: LeadStatus })
+  @Prop({ type: String, enum: LeadStatus, default: LeadStatus.NEW })
   status: LeadStatus;
 
-  @Prop()
-  company: string;
+  @ApiProperty({ description: 'Lead source', enum: LeadSource })
+  @Prop({ type: String, enum: LeadSource, required: true })
+  source: LeadSource;
 
-  @Prop()
-  jobTitle: string;
+  @ApiProperty({ description: 'Estimated deal value' })
+  @Prop({ type: Number, default: 0 })
+  value: number;
 
+  @ApiProperty({ description: 'Notes about the lead' })
   @Prop()
   notes: string;
 
-  @Prop({ type: Number, default: 0 })
-  leadScore: number;
+  @ApiProperty({ description: 'Assigned sales representative ID' })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  assignedTo: string;
 
-  @Prop({ type: Number, default: 0 })
-  value: number;
+  @ApiProperty({ description: 'Last contact date' })
+  @Prop({ type: Date, default: Date.now })
+  lastContact: Date;
+
+  @ApiProperty({ description: 'Created at timestamp' })
+  createdAt: Date;
+
+  @ApiProperty({ description: 'Updated at timestamp' })
+  updatedAt: Date;
 
   @Prop({ type: [{ type: MongooseSchema.Types.ObjectId, ref: 'Interaction' }] })
   interactions: MongooseSchema.Types.ObjectId[];
@@ -118,9 +130,6 @@ export class Lead extends Document {
     annualRevenue: number;
     employeeCount: number;
   };
-
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export const LeadSchema = SchemaFactory.createForClass(Lead);

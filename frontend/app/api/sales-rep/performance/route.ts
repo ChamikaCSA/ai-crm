@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     const period = searchParams.get('period') || 'this_month'
 
     const response = await api.get<PerformanceDataApiResponse>(
-      `${process.env.NEXT_PUBLIC_API_URL}/performance?period=${period}`
+      `${process.env.NEXT_PUBLIC_API_URL}/api/sales-rep/performance?period=${period}`
     )
 
     return NextResponse.json(response.data)

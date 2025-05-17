@@ -1,10 +1,10 @@
-'use client'
+"use client";
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { cn } from '@/lib/utils'
-import { useAuth } from '@/contexts/AuthContext'
-import { motion } from 'framer-motion'
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/AuthContext";
+import { motion } from "framer-motion";
 import {
   Home,
   MessageSquare,
@@ -18,91 +18,90 @@ import {
   Target,
   Database,
   Shield,
-} from 'lucide-react'
+} from "lucide-react";
 
 const customerNavigation = [
-  { name: 'Overview', href: '/dashboard', icon: Home },
+  { name: "Overview", href: "/dashboard", icon: Home },
   { name: 'Chat Support', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Recommendations', href: '/dashboard/recommendations', icon: Lightbulb },
   { name: 'Support', href: '/dashboard/support', icon: Headphones },
-  { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-]
+  { name: "Account", href: "/dashboard/account", icon: User },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 const salesRepNavigation = [
-  { name: 'Overview', href: '/dashboard', icon: Home },
+  { name: "Overview", href: "/dashboard", icon: Home },
   { name: 'Leads', href: '/dashboard/leads', icon: Users },
   { name: 'Performance', href: '/dashboard/performance', icon: BarChart3 },
-  { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-]
+  { name: "Account", href: "/dashboard/account", icon: User },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 const salesManagerNavigation = [
-  { name: 'Overview', href: '/dashboard', icon: Home },
-  { name: 'Pipeline', href: '/dashboard/pipeline', icon: BarChart3 },
+  { name: "Overview", href: "/dashboard", icon: Home },
   { name: 'Forecasting', href: '/dashboard/forecasting', icon: Target },
+  { name: 'Pipeline', href: '/dashboard/pipeline', icon: BarChart3 },
   { name: 'Reports', href: '/dashboard/reports', icon: ClipboardList },
-  { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-]
+  { name: "Account", href: "/dashboard/account", icon: User },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 const marketingNavigation = [
-  { name: 'Overview', href: '/dashboard', icon: Home },
+  { name: "Overview", href: "/dashboard", icon: Home },
   { name: 'Campaigns', href: '/dashboard/campaigns', icon: Target },
   { name: 'Segments', href: '/dashboard/segments', icon: Users },
   { name: 'Sentiment', href: '/dashboard/sentiment', icon: MessageSquare },
-  { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-]
+  { name: "Account", href: "/dashboard/account", icon: User },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 const dataAnalystNavigation = [
-  { name: 'Overview', href: '/dashboard', icon: Home },
+  { name: "Overview", href: "/dashboard", icon: Home },
   { name: 'Data Analysis', href: '/dashboard/analysis', icon: Database },
-  { name: 'Trend Analysis', href: '/dashboard/trends', icon: Target },
-  { name: 'Reports', href: '/dashboard/reports', icon: ClipboardList },
   { name: 'Forecasting', href: '/dashboard/forecasting', icon: Target },
-  { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-]
+  { name: 'Reports', href: '/dashboard/reports', icon: ClipboardList },
+  { name: "Trend Analysis", href: "/dashboard/trends", icon: Target },
+  { name: "Account", href: "/dashboard/account", icon: User },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 const adminNavigation = [
-  { name: 'Overview', href: '/dashboard', icon: Home },
-  { name: 'Users', href: '/dashboard/users', icon: Users },
+  { name: "Overview", href: "/dashboard", icon: Home },
   { name: 'System', href: '/dashboard/system', icon: Shield },
-  { name: 'Analytics', href: '/dashboard/analytics', icon: BarChart3 },
-  { name: 'Account', href: '/dashboard/account', icon: User },
-  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-]
+  { name: "Users", href: "/dashboard/users", icon: Users },
+  { name: "Account", href: "/dashboard/account", icon: User },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+];
 
 export function DashboardNav() {
-  const pathname = usePathname()
-  const { user } = useAuth()
+  const pathname = usePathname();
+  const { user } = useAuth();
 
   const getNavigation = () => {
     switch (user?.role) {
-      case 'customer':
-        return customerNavigation
-      case 'sales_rep':
-        return salesRepNavigation
-      case 'sales_manager':
-        return salesManagerNavigation
-      case 'marketing_specialist':
-        return marketingNavigation
-      case 'data_analyst':
-        return dataAnalystNavigation
-      case 'admin':
-        return adminNavigation
+      case "customer":
+        return customerNavigation;
+      case "sales_rep":
+        return salesRepNavigation;
+      case "sales_manager":
+        return salesManagerNavigation;
+      case "marketing_specialist":
+        return marketingNavigation;
+      case "data_analyst":
+        return dataAnalystNavigation;
+      case "admin":
+        return adminNavigation;
       default:
-        return customerNavigation
+        return customerNavigation;
     }
-  }
+  };
 
-  const navigation = getNavigation()
+  const navigation = getNavigation();
 
   return (
     <nav className="space-y-1 p-2">
       {navigation.map((item, index) => {
-        const isActive = pathname === item.href
+        const isActive = pathname === item.href;
         return (
           <motion.div
             key={item.name}
@@ -113,10 +112,10 @@ export function DashboardNav() {
             <Link
               href={item.href}
               className={cn(
-                'group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
-                'hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]',
-                'relative overflow-hidden',
-                isActive && 'bg-[var(--accent)] text-[var(--accent-foreground)]'
+                "group flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
+                "hover:bg-[var(--accent)] hover:text-[var(--accent-foreground)]",
+                "relative overflow-hidden",
+                isActive && "bg-[var(--accent)] text-[var(--accent-foreground)]"
               )}
             >
               <motion.div
@@ -134,11 +133,11 @@ export function DashboardNav() {
               <div className="relative z-10 flex items-center">
                 <item.icon
                   className={cn(
-                    'mr-3 h-5 w-5 transition-transform duration-200',
+                    "mr-3 h-5 w-5 transition-transform duration-200",
                     isActive
-                      ? 'text-[var(--primary)]'
-                      : 'text-[var(--text-tertiary)] group-hover:text-[var(--primary)]',
-                    'group-hover:scale-110'
+                      ? "text-[var(--primary)]"
+                      : "text-[var(--text-tertiary)] group-hover:text-[var(--primary)]",
+                    "group-hover:scale-110"
                   )}
                 />
                 <span>{item.name}</span>
@@ -152,8 +151,8 @@ export function DashboardNav() {
               )}
             </Link>
           </motion.div>
-        )
+        );
       })}
     </nav>
-  )
+  );
 }
