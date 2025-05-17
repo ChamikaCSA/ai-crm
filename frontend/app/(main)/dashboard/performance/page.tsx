@@ -44,7 +44,7 @@ export default function PerformancePage() {
   const fetchPerformanceData = async () => {
     try {
       setIsLoading(true)
-      const response = await api.get<PerformanceData>(`/api/performance?period=${selectedPeriod}`)
+      const response = await api.get<PerformanceData>(`/api/sales-rep/performance?period=${selectedPeriod}`)
 
       if (response.metrics) {
         setMetrics(response.metrics.map(metric => ({

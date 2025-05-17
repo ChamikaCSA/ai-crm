@@ -44,6 +44,9 @@ export class AuditLog extends Document {
 
   @Prop()
   userAgent: string;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export const AuditLogSchema = SchemaFactory.createForClass(AuditLog);

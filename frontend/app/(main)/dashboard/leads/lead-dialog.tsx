@@ -126,7 +126,7 @@ export function LeadDialog({
 
     try {
       setIsLoading(true)
-      const response = await api.get<FormData>(`/api/leads/${leadId}`)
+      const response = await api.get<FormData>(`/api/sales-rep/leads/${leadId}`)
       form.reset(response)
     } catch (error) {
       console.error('Failed to fetch lead details:', error)
@@ -141,10 +141,10 @@ export function LeadDialog({
     try {
       setIsSubmitting(true)
       if (isEditMode) {
-        await api.put(`/api/leads/${leadId}`, data)
+        await api.put(`/api/sales-rep/leads/${leadId}`, data)
         toast.success('Lead updated successfully')
       } else {
-        await api.post('/api/leads', data)
+        await api.post('/api/sales-rep/leads', data)
         toast.success('Lead added successfully')
         form.reset()
       }

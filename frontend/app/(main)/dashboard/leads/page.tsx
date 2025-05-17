@@ -74,7 +74,7 @@ export default function LeadsPage() {
   const fetchLeads = async () => {
     try {
       setIsLoading(true)
-      const response = await api.get<Lead[]>('/api/leads')
+      const response = await api.get<Lead[]>('/api/sales-rep/leads')
       setLeads(response)
       setError(false)
     } catch (error) {
@@ -113,7 +113,7 @@ export default function LeadsPage() {
 
   const handleStatusChange = async (leadId: string, newStatus: LeadStatus) => {
     try {
-      await api.put(`/api/leads/${leadId}/status`, { status: newStatus })
+      await api.put(`/api/sales-rep/leads/${leadId}/status`, { status: newStatus })
       toast.success('Lead status updated')
       fetchLeads() // Refresh the leads list
     } catch (error) {
@@ -133,7 +133,7 @@ export default function LeadsPage() {
 
   const handleDeleteLead = async (leadId: string) => {
     try {
-      await api.delete(`/api/leads?id=${leadId}`)
+      await api.delete(`/api/sales-rep/leads?id=${leadId}`)
       toast.success('Lead deleted successfully')
       fetchLeads()
     } catch (error) {

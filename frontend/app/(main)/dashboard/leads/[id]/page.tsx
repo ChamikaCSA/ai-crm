@@ -75,7 +75,7 @@ export default function LeadViewPage() {
   const fetchLeadDetails = async () => {
     try {
       setIsLoading(true)
-      const response = await api.get<Lead>(`/api/leads/${params.id}`)
+      const response = await api.get<Lead>(`/api/sales-rep/leads/${params.id}`)
       setLeadDetails(response)
     } catch (error) {
       console.error('Failed to fetch lead details:', error)

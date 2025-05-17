@@ -30,22 +30,51 @@ import {
   Key,
   Activity,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Search,
+  MoreHorizontal,
+  Edit,
+  Trash2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { containerVariants, itemVariants } from '@/lib/animations'
 import { toast } from 'sonner'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
+import { Modal } from '@/components/ui/modal'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { UserDialog } from './user-dialog'
+import { UserRole } from '@/lib/types'
 
 interface User {
-  id: string
-  name: string
+  _id: string
   email: string
-  role: 'admin' | 'sales_rep' | 'marketing_specialist' | 'it_admin'
-  status: 'active' | 'inactive' | 'suspended'
-  lastLogin: string
-  mfaEnabled: boolean
-  permissions: string[]
+  firstName: string
+  lastName: string
+  role: UserRole
+  isMfaEnabled: boolean
+  isEmailVerified: boolean
+  isActive: boolean
+  interactionHistory: any[]
+  preferences: any[]
+  createdAt: string
+  updatedAt: string
 }
 
 interface UserMetric {
@@ -55,96 +84,131 @@ interface UserMetric {
   change: number
 }
 
+interface Role {
+  name: string
+  description: string
+  permissions: string[]
+}
+
 export default function UsersPage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState(false)
   const [users, setUsers] = useState<User[]>([])
   const [metrics, setMetrics] = useState<UserMetric[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
+  const [newUser, setNewUser] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    role: UserRole.SALES_REP,
+    isMfaEnabled: false,
+  })
+
+  const fetchUsersData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Fetch user metrics
+      const metricsResponse = await fetch('/api/admin/users/metrics')
+      if (!metricsResponse.ok) throw new Error('Failed to fetch user metrics')
+      const metricsData = await metricsResponse.json()
+      setMetrics(metricsData.metrics || [])
+
+      // Fetch users
+      const usersResponse = await fetch('/api/admin/users')
+      if (!usersResponse.ok) throw new Error('Failed to fetch users')
+      const usersData = await usersResponse.json()
+      setUsers(Array.isArray(usersData) ? usersData : [])
+    } catch (err) {
+      console.error('Error fetching users data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to fetch users data')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     fetchUsersData()
   }, [])
 
-  const fetchUsersData = async () => {
-    try {
-      setIsLoading(true)
-      // Replace with actual API call
-      const mockUsers: User[] = [
-        {
-          id: '1',
-          name: 'John Doe',
-          email: 'john@example.com',
-          role: 'admin',
-          status: 'active',
-          lastLogin: '2024-03-15 14:30',
-          mfaEnabled: true,
-          permissions: ['manage_users', 'view_analytics', 'manage_roles']
-        },
-        {
-          id: '2',
-          name: 'Jane Smith',
-          email: 'jane@example.com',
-          role: 'sales_rep',
-          status: 'active',
-          lastLogin: '2024-03-15 13:45',
-          mfaEnabled: false,
-          permissions: ['view_leads', 'manage_tasks']
-        }
-      ]
-
-      const mockMetrics: UserMetric[] = [
-        {
-          name: 'Total Users',
-          value: 45,
-          trend: 12.5,
-          change: 5.2
-        },
-        {
-          name: 'Active Users',
-          value: 38,
-          trend: 8.2,
-          change: 3.1
-        },
-        {
-          name: 'MFA Enabled',
-          value: 32,
-          trend: 15.5,
-          change: 7.2
-        }
-      ]
-
-      setUsers(mockUsers)
-      setMetrics(mockMetrics)
-      setError(false)
-    } catch (error) {
-      console.error('Failed to fetch users data:', error)
-      setError(true)
-      toast.error('Failed to fetch users data')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const getRoleColor = (role: User['role']) => {
+  const getRoleColor = (role: UserRole) => {
     const colors = {
-      admin: 'bg-purple-100 text-purple-800',
-      sales_rep: 'bg-blue-100 text-blue-800',
-      marketing_specialist: 'bg-green-100 text-green-800',
-      it_admin: 'bg-red-100 text-red-800',
+      [UserRole.ADMIN]: 'bg-purple-100 text-purple-800',
+      [UserRole.SALES_REP]: 'bg-blue-100 text-blue-800',
+      [UserRole.SALES_MANAGER]: 'bg-indigo-100 text-indigo-800',
+      [UserRole.MARKETING_SPECIALIST]: 'bg-green-100 text-green-800',
+      [UserRole.DATA_ANALYST]: 'bg-yellow-100 text-yellow-800',
+      [UserRole.CUSTOMER]: 'bg-gray-100 text-gray-800',
     }
     return colors[role]
   }
 
-  const getStatusColor = (status: User['status']) => {
-    const colors = {
-      active: 'bg-green-100 text-green-800',
-      inactive: 'bg-gray-100 text-gray-800',
-      suspended: 'bg-red-100 text-red-800',
+  const handleAddUser = async () => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newUser),
+      })
+
+      if (!response.ok) throw new Error('Failed to add user')
+
+      toast.success('User added successfully')
+      setIsAddUserOpen(false)
+      setNewUser({
+        email: '',
+        firstName: '',
+        lastName: '',
+        role: UserRole.SALES_REP,
+        isMfaEnabled: false,
+      })
+      fetchUsersData() // Refresh the user list
+    } catch (error) {
+      console.error('Error adding user:', error)
+      toast.error('Failed to add user')
     }
-    return colors[status]
   }
 
-  if (isLoading) {
+  const handleEditUser = (userId: string) => {
+    setEditingUserId(userId)
+    setIsEditDialogOpen(true)
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) throw new Error('Failed to delete user')
+
+      toast.success('User deleted successfully')
+      fetchUsersData()
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      toast.error('Failed to delete user')
+    }
+  }
+
+  const filteredUsers = users.filter(user => {
+    const matchesSearch =
+      user.firstName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchQuery.toLowerCase())
+
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter
+
+    return matchesSearch && matchesRole
+  })
+
+  if (loading) {
     return (
       <div className="container mx-auto px-4 py-8 space-y-8">
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
@@ -186,8 +250,10 @@ export default function UsersPage() {
           <CardContent className="p-6">
             <div className="h-32 flex flex-col items-center justify-center text-[var(--text-tertiary)] space-y-2">
               <AlertCircle className="w-8 h-8 text-[var(--warning)]" />
-              <p>Failed to load users data</p>
-              <Button variant="outline" size="sm" onClick={fetchUsersData} className="group">
+              <p>{error}</p>
+              <Button variant="outline" size="sm" onClick={() => {
+                fetchUsersData()
+              }} className="group">
                 Try Again
               </Button>
             </div>
@@ -213,188 +279,124 @@ export default function UsersPage() {
                 User Management
               </CardTitle>
               <CardDescription className="text-[var(--text-secondary)]">
-                Manage users, roles, and permissions
+                Manage users and permissions
               </CardDescription>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline">
-                <UserCog className="mr-2 h-4 w-4" />
-                Manage Roles
-              </Button>
-              <Button>
-                <UserPlus className="mr-2 h-4 w-4" />
-                Add User
-              </Button>
-            </div>
+            <UserDialog
+              open={isAddUserOpen}
+              onOpenChange={setIsAddUserOpen}
+              onUserUpdated={fetchUsersData}
+              trigger={
+                <Button>
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Add User
+                </Button>
+              }
+            />
           </CardHeader>
+
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {metrics.map((metric) => (
-                <Card key={metric.name} className="bg-[var(--card)]/50">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {metric.name}
-                    </CardTitle>
-                    <Users className="h-4 w-4" />
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{metric.value}</div>
-                    <div className="flex items-center pt-1">
-                      {metric.trend > 0 ? (
-                        <ArrowUpRight className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-red-500" />
-                      )}
-                      <span className={`text-sm ml-1 ${metric.trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {metric.trend > 0 ? '+' : ''}{metric.trend}%
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="flex items-center gap-4 mb-6">
+              <div className="relative flex-1">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search users..."
+                  className="pl-8"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                  <SelectItem value={UserRole.SALES_REP}>Sales Rep</SelectItem>
+                  <SelectItem value={UserRole.SALES_MANAGER}>Sales Manager</SelectItem>
+                  <SelectItem value={UserRole.MARKETING_SPECIALIST}>Marketing Specialist</SelectItem>
+                  <SelectItem value={UserRole.DATA_ANALYST}>Data Analyst</SelectItem>
+                  <SelectItem value={UserRole.CUSTOMER}>Customer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">
-              <Card className="col-span-4 bg-[var(--card)]/50">
-                <CardHeader>
-                  <CardTitle>User List</CardTitle>
-                  <CardDescription>
-                    Manage user accounts and permissions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {users.map((user) => (
-                      <div key={user.id} className="p-4 rounded-lg bg-[var(--card)]/50">
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                              <Users className="w-5 h-5 text-[var(--primary)]" />
-                            </div>
-                            <div>
-                              <p className="text-sm font-medium">{user.name}</p>
-                              <p className="text-xs text-muted-foreground">
-                                {user.email}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Badge className={getRoleColor(user.role)}>
-                              {user.role}
-                            </Badge>
-                            <Badge className={getStatusColor(user.status)}>
-                              {user.status}
-                            </Badge>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="p-3 rounded-lg bg-[var(--card)]/50">
-                            <p className="text-sm font-medium">Last Login</p>
-                            <p className="text-sm text-muted-foreground">
-                              {user.lastLogin}
-                            </p>
-                          </div>
-                          <div className="p-3 rounded-lg bg-[var(--card)]/50">
-                            <p className="text-sm font-medium">Security</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              {user.mfaEnabled ? (
-                                <Badge className="bg-green-100 text-green-800">
-                                  <Lock className="w-3 h-3 mr-1" />
-                                  MFA Enabled
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline">
-                                  <Key className="w-3 h-3 mr-1" />
-                                  MFA Disabled
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex justify-end mt-4">
-                          <Button variant="ghost" size="sm">
-                            Manage Permissions
-                            <ChevronRight className="ml-2 h-4 w-4" />
-                          </Button>
-                        </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>MFA</TableHead>
+                  <TableHead>Last Updated</TableHead>
+                  <TableHead className="w-[100px]">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user._id}>
+                    <TableCell className="font-medium">
+                      {user.firstName} {user.lastName}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge className={getRoleColor(user.role)}>
+                        {user.role.replace('_', ' ').toUpperCase()}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}
+                      >
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        className={user.isMfaEnabled ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}
+                      >
+                        {user.isMfaEnabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(user.updatedAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleEditUser(user._id)}
+                          className="h-8 w-8"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteUser(user._id)}
+                          className="hover:bg-destructive/10 hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="col-span-3 bg-[var(--card)]/50">
-                <CardHeader>
-                  <CardTitle>Security Overview</CardTitle>
-                  <CardDescription>
-                    System security status and alerts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {[
-                      { name: 'MFA Adoption', value: '71%', status: 'good' },
-                      { name: 'Failed Logins', value: '12', status: 'warning' },
-                      { name: 'Security Score', value: '85/100', status: 'good' }
-                    ].map((item) => (
-                      <div key={item.name} className="p-3 rounded-lg bg-[var(--card)]/50">
-                        <div className="flex items-center justify-between mb-2">
-                          <p className="text-sm font-medium">{item.name}</p>
-                          <Badge className={item.status === 'good' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
-                            {item.value}
-                          </Badge>
-                        </div>
-                        <div className="w-full bg-secondary rounded-full h-2">
-                          <div
-                            className={`h-2 rounded-full ${item.status === 'good' ? 'bg-green-500' : 'bg-yellow-500'}`}
-                            style={{ width: item.name === 'Security Score' ? '85%' : '71%' }}
-                          ></div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="mt-6 bg-[var(--card)]/50">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>
-                  Latest user actions and system events
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    { user: 'John Doe', action: 'Updated user permissions', time: '2 minutes ago' },
-                    { user: 'Jane Smith', action: 'Enabled MFA', time: '15 minutes ago' },
-                    { user: 'System', action: 'Security scan completed', time: '1 hour ago' }
-                  ].map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-4">
-                      <div className="w-2 h-2 rounded-full bg-primary mt-2" />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Activity className="w-4 h-4 text-muted-foreground" />
-                          <p className="text-sm font-medium leading-none">
-                            {activity.user}
-                          </p>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {activity.action}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {activity.time}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
         </Card>
       </motion.div>
+
+      <UserDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onUserUpdated={fetchUsersData}
+        userId={editingUserId}
+      />
     </motion.div>
   )
 }
