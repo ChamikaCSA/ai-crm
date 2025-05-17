@@ -1,26 +1,29 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export enum ReportType {
+export enum SalesReportType {
   SALES_PERFORMANCE = 'sales_performance',
   PIPELINE_ANALYSIS = 'pipeline_analysis',
   FORECAST_ACCURACY = 'forecast_accuracy',
-  TEAM_PERFORMANCE = 'team_performance'
+  TEAM_PERFORMANCE = 'team_performance',
+  REVENUE_ANALYSIS = 'revenue_analysis',
+  PRODUCT_PERFORMANCE = 'product_performance',
+  TERRITORY_ANALYSIS = 'territory_analysis'
 }
 
-export enum ReportFormat {
+export enum SalesReportFormat {
   PDF = 'pdf',
   EXCEL = 'excel',
   CSV = 'csv'
 }
 
 @Schema({ timestamps: true })
-export class Report extends Document {
-  @Prop({ required: true, enum: ReportType })
-  type: ReportType;
+export class SalesReport extends Document {
+  @Prop({ required: true, enum: SalesReportType })
+  type: SalesReportType;
 
-  @Prop({ required: true, enum: ReportFormat })
-  format: ReportFormat;
+  @Prop({ required: true, enum: SalesReportFormat })
+  format: SalesReportFormat;
 
   @Prop({ required: true })
   name: string;
@@ -34,6 +37,10 @@ export class Report extends Document {
     endDate: Date;
     metrics: string[];
     filters: Record<string, any>;
+    teamId?: string;
+    territoryId?: string;
+    productId?: string;
+    salesRepId?: string;
   };
 
   @Prop({ type: Buffer })
@@ -59,7 +66,18 @@ export class Report extends Document {
     generatedBy: string;
     processingTime: number;
     recordCount: number;
+    salesMetrics?: {
+      totalRevenue: number;
+      averageDealSize: number;
+      winRate: number;
+      conversionRate: number;
+    };
+    teamMetrics?: {
+      quota: number;
+      attainment: number;
+      performance: number;
+    };
   };
 }
 
-export const ReportSchema = SchemaFactory.createForClass(Report);
+export const SalesReportSchema = SchemaFactory.createForClass(SalesReport);

@@ -29,7 +29,7 @@ export default function PipelinePage() {
           throw new Error(errorData.error || 'Failed to fetch pipeline data')
         }
         const data = await response.json()
-        setPipelineData(data.data || [])
+        setPipelineData(Array.isArray(data) ? data : [])
       } catch (err) {
         setError(err instanceof Error ? err.message : 'An error occurred')
       } finally {
@@ -42,7 +42,6 @@ export default function PipelinePage() {
 
   if (loading && pipelineData.length === 0) return <div>Loading pipeline data...</div>
   if (error) return <div>Error: {error}</div>
-  if (!pipelineData || pipelineData.length === 0) return <div>No pipeline data available</div>
 
   const totalValue = pipelineData.reduce((sum, stage) => sum + stage.value, 0)
   const totalLeads = pipelineData.reduce((sum, stage) => sum + stage.count, 0)

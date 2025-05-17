@@ -1,13 +1,13 @@
 import { IsEnum, IsString, IsOptional, IsObject, IsDate, IsArray } from 'class-validator';
-import { ReportType, ReportFormat } from '../schemas/report.schema';
+import { SalesReportType, SalesReportFormat } from '../schemas/report.schema';
 import { Type } from 'class-transformer';
 
 export class CreateReportDto {
-  @IsEnum(ReportType)
-  type: ReportType;
+  @IsEnum(SalesReportType)
+  type: SalesReportType;
 
-  @IsEnum(ReportFormat)
-  format: ReportFormat;
+  @IsEnum(SalesReportFormat)
+  format: SalesReportFormat;
 
   @Type(() => Date)
   @IsDate()
@@ -25,16 +25,32 @@ export class CreateReportDto {
   @IsOptional()
   @IsObject()
   filters?: Record<string, any>;
+
+  @IsOptional()
+  @IsString()
+  teamId?: string;
+
+  @IsOptional()
+  @IsString()
+  territoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  productId?: string;
+
+  @IsOptional()
+  @IsString()
+  salesRepId?: string;
 }
 
 export class ReportQueryDto {
   @IsOptional()
-  @IsEnum(ReportType)
-  type?: ReportType;
+  @IsEnum(SalesReportType)
+  type?: SalesReportType;
 
   @IsOptional()
-  @IsEnum(ReportFormat)
-  format?: ReportFormat;
+  @IsEnum(SalesReportFormat)
+  format?: SalesReportFormat;
 
   @IsOptional()
   @Type(() => Date)
@@ -50,4 +66,20 @@ export class ReportQueryDto {
   @IsArray()
   @IsString({ each: true })
   metrics?: string[];
+
+  @IsOptional()
+  @IsString()
+  teamId?: string;
+
+  @IsOptional()
+  @IsString()
+  territoryId?: string;
+
+  @IsOptional()
+  @IsString()
+  productId?: string;
+
+  @IsOptional()
+  @IsString()
+  salesRepId?: string;
 }

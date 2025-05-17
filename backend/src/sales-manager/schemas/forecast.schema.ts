@@ -1,16 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export enum ForecastMetric {
+export enum SalesManagerForecastMetric {
   REVENUE = 'revenue',
   LEADS = 'leads',
   CONVERSION = 'conversion'
 }
 
-@Schema({ timestamps: true })
-export class Forecast extends Document {
-  @Prop({ required: true, enum: ForecastMetric })
-  metric: ForecastMetric;
+@Schema({ timestamps: true, collection: 'sales_manager_forecasts' })
+export class SalesManagerForecast extends Document {
+  @Prop({ required: true, enum: SalesManagerForecastMetric })
+  metric: SalesManagerForecastMetric;
 
   @Prop({ required: true, type: Number })
   predictedValue: number;
@@ -55,4 +55,4 @@ export class Forecast extends Document {
   };
 }
 
-export const ForecastSchema = SchemaFactory.createForClass(Forecast);
+export const SalesManagerForecastSchema = SchemaFactory.createForClass(SalesManagerForecast);

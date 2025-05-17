@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     if (!metric) {
       return NextResponse.json(
-        { error: 'Metric parameter is required' },
+        { success: false, error: 'Metric parameter is required' },
         { status: 400 }
       )
     }
@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get('token')
 
     if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      )
     }
 
     let endpoint = `${process.env.NEXT_PUBLIC_API_URL}/sales-manager/forecasts`
@@ -44,15 +47,25 @@ export async function GET(request: NextRequest) {
         statusText: response.statusText,
         error: errorText
       })
-      throw new Error(`Backend API error: ${response.status} ${response.statusText}`)
+      return NextResponse.json(
+        { success: false, error: `Backend API error: ${response.status} ${response.statusText}` },
+        { status: response.status }
+      )
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json({
+      success: true,
+      data: data.data.data || [],
+      ...(data.error && { error: data.error })
+    })
   } catch (error) {
     console.error('Error fetching forecasting data:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch forecasting data' },
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to fetch forecasting data'
+      },
       { status: 500 }
     )
   }

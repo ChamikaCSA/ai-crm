@@ -24,8 +24,8 @@ const customerNavigation = [
   { name: 'Overview', href: '/dashboard', icon: Home },
   { name: 'Chat Support', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Recommendations', href: '/dashboard/recommendations', icon: Lightbulb },
-  { name: 'Account', href: '/dashboard/account', icon: User },
   { name: 'Support', href: '/dashboard/support', icon: Headphones },
+  { name: 'Account', href: '/dashboard/account', icon: User },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]
 
@@ -58,8 +58,9 @@ const marketingNavigation = [
 const dataAnalystNavigation = [
   { name: 'Overview', href: '/dashboard', icon: Home },
   { name: 'Data Analysis', href: '/dashboard/analysis', icon: Database },
-  { name: 'Reports', href: '/dashboard/reports', icon: BarChart3 },
-  { name: 'Predictions', href: '/dashboard/predictions', icon: Target },
+  { name: 'Trend Analysis', href: '/dashboard/trends', icon: Target },
+  { name: 'Reports', href: '/dashboard/reports', icon: ClipboardList },
+  { name: 'Forecasting', href: '/dashboard/forecasting', icon: Target },
   { name: 'Account', href: '/dashboard/account', icon: User },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ]

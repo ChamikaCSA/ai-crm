@@ -1,9 +1,9 @@
 import { IsEnum, IsNumber, IsDate, IsOptional, IsObject, Min, Max } from 'class-validator';
-import { ForecastMetric } from '../schemas/forecast.schema';
+import { SalesManagerForecastMetric } from '../schemas/forecast.schema';
 
 export class CreateForecastDto {
-  @IsEnum(ForecastMetric)
-  metric: ForecastMetric;
+  @IsEnum(SalesManagerForecastMetric)
+  metric: SalesManagerForecastMetric;
 
   @IsNumber()
   predictedValue: number;
@@ -40,8 +40,8 @@ export class CreateForecastDto {
 
 export class ForecastQueryDto {
   @IsOptional()
-  @IsEnum(ForecastMetric)
-  metric?: ForecastMetric;
+  @IsEnum(SalesManagerForecastMetric)
+  metric?: SalesManagerForecastMetric;
 
   @IsOptional()
   @IsDate()

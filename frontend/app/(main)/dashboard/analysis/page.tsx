@@ -18,6 +18,17 @@ import {
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import {
   BarChart,
   LineChart,
   PieChart,
@@ -36,6 +47,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Skeleton } from '@/components/ui/skeleton'
 import { containerVariants, itemVariants } from '@/lib/animations'
 import { toast } from 'sonner'
+import { Progress } from '@/components/ui/progress'
+import { cn } from '@/lib/utils'
 
 interface Metric {
   name: string
@@ -43,6 +56,9 @@ interface Metric {
   trend: number
   change: number
   target: number
+  category: string
+  description: string
+  lastUpdated: string
 }
 
 interface TrendData {
@@ -52,74 +68,74 @@ interface TrendData {
   change: number
 }
 
+interface DashboardConfig {
+  id: string
+  name: string
+  metrics: string[]
+  layout: 'grid' | 'list'
+  refreshInterval: number
+  isDefault: boolean
+}
+
 export default function AnalysisPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const [metrics, setMetrics] = useState<Metric[]>([])
   const [trends, setTrends] = useState<TrendData[]>([])
+  const [dashboards, setDashboards] = useState<DashboardConfig[]>([])
+  const [activeDashboard, setActiveDashboard] = useState<string>('default')
+  const [isCustomizing, setIsCustomizing] = useState(false)
+  const [newDashboard, setNewDashboard] = useState<Partial<DashboardConfig>>({
+    name: '',
+    metrics: [],
+    layout: 'grid',
+    refreshInterval: 300,
+    isDefault: false
+  })
 
   useEffect(() => {
     fetchAnalysisData()
-  }, [])
+  }, [activeDashboard])
+
+  useEffect(() => {
+    if (dashboards.length === 0) {
+      const defaultDashboard: DashboardConfig = {
+        id: 'default',
+        name: 'Default Dashboard',
+        metrics: metrics.map(m => m.name),
+        layout: 'grid',
+        refreshInterval: 300,
+        isDefault: true
+      }
+      setDashboards([defaultDashboard])
+      setActiveDashboard('default')
+    }
+  }, [metrics])
+
+  useEffect(() => {
+    const activeConfig = dashboards.find(d => d.id === activeDashboard)
+    if (!activeConfig) return
+
+    const interval = setInterval(() => {
+      fetchAnalysisData()
+    }, activeConfig.refreshInterval * 1000)
+
+    return () => clearInterval(interval)
+  }, [activeDashboard, dashboards])
 
   const fetchAnalysisData = async () => {
     try {
       setIsLoading(true)
-      // Replace with actual API call
-      const mockMetrics: Metric[] = [
-        {
-          name: 'Conversion Rate',
-          value: 12.5,
-          trend: 15.5,
-          change: 5.2,
-          target: 15
-        },
-        {
-          name: 'Customer Lifetime Value',
-          value: 2500,
-          trend: 8.2,
-          change: 3.1,
-          target: 3000
-        },
-        {
-          name: 'Churn Rate',
-          value: 4.2,
-          trend: -12.5,
-          change: -2.1,
-          target: 3
-        },
-        {
-          name: 'Revenue Growth',
-          value: 18.5,
-          trend: 25.5,
-          change: 7.2,
-          target: 20
-        }
-      ]
-
-      const mockTrends: TrendData[] = [
-        {
-          category: 'Sales Pipeline',
-          value: 1250000,
-          previousValue: 1000000,
-          change: 25
-        },
-        {
-          category: 'Customer Acquisition',
-          value: 850,
-          previousValue: 750,
-          change: 13.3
-        },
-        {
-          category: 'Average Deal Size',
-          value: 25000,
-          previousValue: 22000,
-          change: 13.6
-        }
-      ]
-
-      setMetrics(mockMetrics)
-      setTrends(mockTrends)
+      // Fetch metrics and trends from backend
+      const [metricsRes, trendsRes] = await Promise.all([
+        fetch('/api/data-analyst/dashboard/metrics'),
+        fetch('/api/data-analyst/dashboard/trends'),
+      ])
+      if (!metricsRes.ok || !trendsRes.ok) throw new Error('Failed to fetch dashboard data')
+      const metrics = await metricsRes.json()
+      const trends = await trendsRes.json()
+      setMetrics(metrics)
+      setTrends(trends)
       setError(false)
     } catch (error) {
       console.error('Failed to fetch analysis data:', error)
@@ -128,6 +144,82 @@ export default function AnalysisPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const handleDashboardChange = (dashboardId: string) => {
+    setActiveDashboard(dashboardId)
+  }
+
+  const handleCustomizeDashboard = () => {
+    setIsCustomizing(true)
+  }
+
+  const handleExportData = async () => {
+    try {
+      const response = await fetch('/api/data-analyst/dashboard/analysis/export')
+      if (!response.ok) throw new Error('Failed to export data')
+
+      // Get the blob from the response
+      const blob = await response.blob()
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob)
+
+      // Create a temporary link element
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'analysis-data.csv'
+
+      // Append to the document, click it, and remove it
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      // Clean up the URL
+      window.URL.revokeObjectURL(url)
+
+      toast.success('Data exported successfully')
+    } catch (error) {
+      console.error('Failed to export data:', error)
+      toast.error('Failed to export data')
+    }
+  }
+
+  const handleSaveDashboard = () => {
+    if (!newDashboard.name) {
+      toast.error('Please enter a dashboard name')
+      return
+    }
+
+    const config: DashboardConfig = {
+      id: `dashboard-${Date.now()}`,
+      name: newDashboard.name,
+      metrics: newDashboard.metrics || [],
+      layout: newDashboard.layout || 'grid',
+      refreshInterval: newDashboard.refreshInterval || 300,
+      isDefault: newDashboard.isDefault || false
+    }
+
+    setDashboards(prev => [...prev, config])
+    setActiveDashboard(config.id)
+    setIsCustomizing(false)
+    setNewDashboard({
+      name: '',
+      metrics: [],
+      layout: 'grid',
+      refreshInterval: 300,
+      isDefault: false
+    })
+    toast.success('Dashboard saved successfully')
+  }
+
+  const handleMetricToggle = (metricName: string) => {
+    setNewDashboard(prev => ({
+      ...prev,
+      metrics: prev.metrics?.includes(metricName)
+        ? prev.metrics.filter(m => m !== metricName)
+        : [...(prev.metrics || []), metricName]
+    }))
   }
 
   if (isLoading) {
@@ -203,68 +295,94 @@ export default function AnalysisPage() {
               </CardDescription>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline">
-                <Download className="mr-2 h-4 w-4" />
-                Export Data
-              </Button>
-              <Button>
+              <Select value={activeDashboard} onValueChange={handleDashboardChange}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select dashboard" />
+                </SelectTrigger>
+                <SelectContent>
+                  {dashboards.map(dashboard => (
+                    <SelectItem key={dashboard.id} value={dashboard.id}>
+                      {dashboard.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button variant="outline" onClick={handleCustomizeDashboard}>
                 <Settings className="mr-2 h-4 w-4" />
                 Customize
+              </Button>
+              <Button onClick={handleExportData}>
+                <Download className="mr-2 h-4 w-4" />
+                Export
               </Button>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              {metrics.map((metric) => (
-                <Card key={metric.name} className="bg-[var(--card)]/50">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
-                      {metric.name}
-                    </CardTitle>
-                    {metric.name.includes('Revenue') ? (
-                      <DollarSign className="h-4 w-4" />
-                    ) : metric.name.includes('Customer') ? (
-                      <Users className="h-4 w-4" />
-                    ) : metric.name.includes('Churn') ? (
-                      <Activity className="h-4 w-4" />
-                    ) : (
-                      <Target className="h-4 w-4" />
+            <div className={cn(
+              "gap-4",
+              dashboards.find(d => d.id === activeDashboard)?.layout === 'grid'
+                ? "grid md:grid-cols-2 lg:grid-cols-4"
+                : "flex flex-col"
+            )}>
+              {metrics
+                .filter(metric =>
+                  dashboards.find(d => d.id === activeDashboard)?.metrics.includes(metric.name)
+                )
+                .map((metric) => (
+                  <Card
+                    key={metric.name}
+                    className={cn(
+                      "bg-[var(--card)]/50 hover:shadow-lg transition-all duration-300",
+                      dashboards.find(d => d.id === activeDashboard)?.layout === 'list' && "mb-4"
                     )}
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {metric.name.includes('Revenue') || metric.name.includes('Customer Lifetime Value')
-                        ? `$${metric.value.toLocaleString()}`
-                        : `${metric.value}%`}
-                    </div>
-                    <div className="flex items-center pt-1">
-                      {metric.trend > 0 ? (
-                        <ArrowUpRight className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <ArrowDownRight className="h-4 w-4 text-red-500" />
-                      )}
-                      <span className={`text-sm ml-1 ${metric.trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {metric.trend > 0 ? '+' : ''}{metric.trend}%
-                      </span>
-                    </div>
-                    <div className="mt-2">
-                      <div className="w-full bg-secondary rounded-full h-2">
-                        <div
-                          className="h-2 rounded-full bg-primary"
-                          style={{ width: `${(metric.value / metric.target) * 100}%` }}
-                        ></div>
+                  >
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-sm font-medium">
+                        {metric.name}
+                      </CardTitle>
+                      <Badge variant="outline" className="text-xs">
+                        {metric.category}
+                      </Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">
+                        {metric.name.includes('Revenue') || metric.name.includes('Customer Lifetime Value')
+                          ? `$${metric.value.toLocaleString()}`
+                          : `${metric.value}%`}
                       </div>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Target: {metric.target}%
-                      </p>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      <div className="flex items-center pt-1">
+                        {metric.trend > 0 ? (
+                          <ArrowUpRight className="h-4 w-4 text-green-500" />
+                        ) : (
+                          <ArrowDownRight className="h-4 w-4 text-red-500" />
+                        )}
+                        <span className={`text-sm ml-1 ${metric.trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                          {metric.trend > 0 ? '+' : ''}{metric.trend}%
+                        </span>
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--text-tertiary)]">
+                        {metric.description}
+                      </div>
+                      <div className="mt-2 text-xs text-[var(--text-tertiary)]">
+                        Last updated: {new Date(metric.lastUpdated).toLocaleString()}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7 mt-6">
-              <Card className="col-span-4 bg-[var(--card)]/50">
+            <div className={cn(
+              "mt-6 gap-4",
+              dashboards.find(d => d.id === activeDashboard)?.layout === 'grid'
+                ? "grid md:grid-cols-2 lg:grid-cols-7"
+                : "flex flex-col"
+            )}>
+              <Card className={cn(
+                "bg-[var(--card)]/50",
+                dashboards.find(d => d.id === activeDashboard)?.layout === 'grid'
+                  ? "col-span-4"
+                  : "mb-4"
+              )}>
                 <CardHeader>
                   <CardTitle>Trend Analysis</CardTitle>
                   <CardDescription>
@@ -300,7 +418,12 @@ export default function AnalysisPage() {
                 </CardContent>
               </Card>
 
-              <Card className="col-span-3 bg-[var(--card)]/50">
+              <Card className={cn(
+                "bg-[var(--card)]/50",
+                dashboards.find(d => d.id === activeDashboard)?.layout === 'grid'
+                  ? "col-span-3"
+                  : "mb-4"
+              )}>
                 <CardHeader>
                   <CardTitle>Distribution Analysis</CardTitle>
                   <CardDescription>
@@ -325,7 +448,10 @@ export default function AnalysisPage() {
               </Card>
             </div>
 
-            <Card className="mt-6 bg-[var(--card)]/50">
+            <Card className={cn(
+              "mt-6 bg-[var(--card)]/50",
+              dashboards.find(d => d.id === activeDashboard)?.layout === 'list' && "mb-4"
+            )}>
               <CardHeader>
                 <CardTitle>Data Insights</CardTitle>
                 <CardDescription>
@@ -359,6 +485,105 @@ export default function AnalysisPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Customize Dashboard</DialogTitle>
+            <DialogDescription>
+              Create a new dashboard with your preferred metrics and settings.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={newDashboard.name}
+                onChange={(e) => setNewDashboard(prev => ({ ...prev, name: e.target.value }))}
+                className="col-span-3"
+                placeholder="Enter dashboard name"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="layout" className="text-right">
+                Layout
+              </Label>
+              <Select
+                value={newDashboard.layout}
+                onValueChange={(value: 'grid' | 'list') =>
+                  setNewDashboard(prev => ({ ...prev, layout: value }))
+                }
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select layout" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="grid">Grid</SelectItem>
+                  <SelectItem value="list">List</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="refresh" className="text-right">
+                Refresh (s)
+              </Label>
+              <Input
+                id="refresh"
+                type="number"
+                value={newDashboard.refreshInterval}
+                onChange={(e) => setNewDashboard(prev => ({
+                  ...prev,
+                  refreshInterval: parseInt(e.target.value) || 300
+                }))}
+                className="col-span-3"
+                min={30}
+                max={3600}
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="default" className="text-right">
+                Default
+              </Label>
+              <Switch
+                id="default"
+                checked={newDashboard.isDefault}
+                onCheckedChange={(checked) =>
+                  setNewDashboard(prev => ({ ...prev, isDefault: checked }))
+                }
+                className="col-span-3"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Select Metrics</Label>
+              <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
+                {metrics.map((metric) => (
+                  <div key={metric.name} className="flex items-center space-x-2">
+                    <Switch
+                      id={`metric-${metric.name}`}
+                      checked={newDashboard.metrics?.includes(metric.name)}
+                      onCheckedChange={() => handleMetricToggle(metric.name)}
+                    />
+                    <Label htmlFor={`metric-${metric.name}`} className="text-sm">
+                      {metric.name}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCustomizing(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveDashboard}>
+              Save Dashboard
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </motion.div>
   )
 }

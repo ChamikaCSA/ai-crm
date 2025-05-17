@@ -17,6 +17,7 @@ import { PerformanceModule } from './performance/performance.module';
 import { SalesRepModule } from './sales-rep/sales-rep.module';
 import { SalesManagerModule } from './sales-manager/sales-manager.module';
 import { MarketingSpecialistModule } from './marketing-specialist/marketing-specialist.module';
+import { DataAnalystModule } from './data-analyst/data-analyst.module';
 
 @Module({
   imports: [
@@ -60,7 +61,8 @@ import { MarketingSpecialistModule } from './marketing-specialist/marketing-spec
     PerformanceModule,
     SalesRepModule,
     SalesManagerModule,
-    MarketingSpecialistModule
+    MarketingSpecialistModule,
+    DataAnalystModule
   ],
   providers: [
     {
