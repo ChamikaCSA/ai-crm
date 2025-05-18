@@ -6,12 +6,14 @@ import { UserController } from './user.controller';
 import { PasswordService } from '../common/services/password.service';
 import { EmailService } from '../common/services/email.service';
 import { AuditLog, AuditLogSchema } from '../audit/schemas/audit.schema';
+import { Interaction, InteractionSchema } from '../customer/schemas/interaction.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
       { name: AuditLog.name, schema: AuditLogSchema },
+      { name: Interaction.name, schema: InteractionSchema },
     ]),
   ],
   controllers: [UserController],

@@ -41,6 +41,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
+import { Progress } from "@/components/ui/progress"
 
 interface Lead {
   _id: string
@@ -65,7 +66,6 @@ export default function LeadsPage() {
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [editingLeadId, setEditingLeadId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchLeads()
@@ -74,8 +74,8 @@ export default function LeadsPage() {
   const fetchLeads = async () => {
     try {
       setIsLoading(true)
-      const response = await api.get<Lead[]>('/api/sales-rep/leads')
-      setLeads(response)
+      const response = await api.get<{ data: Lead[] }>('/api/sales-rep/leads')
+      setLeads(Array.isArray(response.data) ? response.data : [])
       setError(false)
     } catch (error) {
       console.error('Failed to fetch leads:', error)
@@ -211,17 +211,10 @@ export default function LeadsPage() {
                 Manage and track your leads through the sales pipeline
               </CardDescription>
             </div>
-            <LeadDialog
-              open={isAddDialogOpen}
-              onOpenChange={setIsAddDialogOpen}
-              onLeadUpdated={fetchLeads}
-              trigger={
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Lead
-                </Button>
-              }
-            />
+            <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Lead
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4 mb-6">
@@ -297,14 +290,9 @@ export default function LeadsPage() {
                       </DropdownMenu>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center">
-                        <div className="w-16 bg-[var(--accent)]/50 rounded-full h-2.5">
-                          <div
-                            className="bg-primary h-2.5 rounded-full"
-                            style={{ width: `${lead.leadScore}%` }}
-                          ></div>
-                        </div>
-                        <span className="ml-2">{lead.leadScore}</span>
+                      <div className="flex items-center gap-4">
+                        <Progress value={lead.leadScore} className="w-16" />
+                        <span>{lead.leadScore}%</span>
                       </div>
                     </TableCell>
                     <TableCell>{lead.source.charAt(0).toUpperCase() + lead.source.slice(1).replace('_', ' ')}</TableCell>
@@ -344,6 +332,12 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      <LeadDialog
+        open={isAddDialogOpen}
+        onOpenChange={setIsAddDialogOpen}
+        onLeadUpdated={fetchLeads}
+      />
 
       <LeadDialog
         leadId={selectedLeadId}

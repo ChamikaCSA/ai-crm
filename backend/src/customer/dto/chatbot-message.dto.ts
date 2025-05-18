@@ -1,9 +1,23 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsOptional } from 'class-validator';
+
+export class ChatMessage {
+  @IsString()
+  @IsNotEmpty()
+  role: string;
+
+  @IsString()
+  @IsNotEmpty()
+  content: string;
+}
 
 export class ChatbotMessageDto {
   @IsString()
   @IsNotEmpty()
   message: string;
+
+  @IsArray()
+  @IsOptional()
+  chatHistory?: ChatMessage[];
 }
 
 export class ChatbotResponseDto {

@@ -48,6 +48,11 @@ export class UserController {
     return this.userService.findAll();
   }
 
+  @Get('account')
+  async getAccountDetails(@Req() req: RequestWithUser) {
+    return this.userService.getAccountDetails(req.user.sub);
+  }
+
   @Get(':id')
   @Roles(UserRole.ADMIN, UserRole.SALES_MANAGER)
   findOne(@Param('id') id: string) {

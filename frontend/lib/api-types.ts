@@ -16,10 +16,17 @@ export interface ChatbotResponse {
 }
 
 export interface Recommendation {
-  type: string
-  title: string
-  description: string
-  score: number
+  id: string;
+  type: string;
+  title: string;
+  description: string;
+  score: number;
+  priority: 'high' | 'medium' | 'low';
+  action?: string;
+  tags?: string[];
+  category?: string;
+  impact?: string;
+  estimatedTime?: string;
 }
 
 export enum SupportTicketStatus {

@@ -3,12 +3,18 @@ import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 import { APP_NAME } from '../../config/strings';
 
+interface EmailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}
+
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private configService: ConfigService) {
-
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP_HOST'),
       port: this.configService.get<number>('SMTP_PORT'),
@@ -20,6 +26,16 @@ export class EmailService {
       tls: {
         rejectUnauthorized: false
       }
+    });
+  }
+
+  async sendEmail(options: EmailOptions): Promise<void> {
+    await this.transporter.sendMail({
+      from: this.configService.get<string>('SMTP_FROM_EMAIL'),
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html,
     });
   }
 

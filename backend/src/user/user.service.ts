@@ -9,12 +9,14 @@ import { PasswordService } from '../common/services/password.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EmailService } from '../common/services/email.service';
 import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
+import { Interaction } from '../customer/schemas/interaction.schema';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel('User') private userModel: Model<User>,
     @InjectModel('AuditLog') private auditLogModel: Model<AuditLog>,
+    @InjectModel('Interaction') private interactionModel: Model<Interaction>,
     private readonly passwordService: PasswordService,
     private readonly emailService: EmailService,
   ) {}
@@ -143,5 +145,43 @@ export class UserService {
     });
 
     return this.findOne(id);
+  }
+
+  // Account related methods
+  async getAccountDetails(userId: string) {
+    const user = await this.userModel.findById(userId).select('-password');
+
+    // Get additional account information
+    const accountInfo = {
+      user,
+      recentInteractions: await this.getRecentInteractions(userId),
+      accountStatus: await this.getAccountStatus(userId),
+    };
+
+    return accountInfo;
+  }
+
+  private async getRecentInteractions(userId: string) {
+    const interactions = await this.interactionModel
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(10)
+      .exec();
+
+    return interactions.map(interaction => ({
+      type: interaction.type,
+      description: interaction.description,
+      timestamp: interaction.createdAt.toISOString(),
+      metadata: interaction.metadata
+    }));
+  }
+
+  private async getAccountStatus(userId: string) {
+    // Implementation for getting account status
+    return {
+      status: 'active',
+      lastLogin: new Date(),
+      subscriptionStatus: 'active',
+    };
   }
 }

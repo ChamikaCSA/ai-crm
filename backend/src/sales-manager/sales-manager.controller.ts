@@ -12,9 +12,9 @@ import { UserRole } from '../user/schemas/user.schema';
 import { RequestWithUser } from '../common/interfaces/request.interface';
 import { Response } from 'express';
 
-@Controller('sales-manager')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SALES_MANAGER)
+@Controller('sales-manager')
 export class SalesManagerController {
   constructor(
     private readonly salesManagerService: SalesManagerService,

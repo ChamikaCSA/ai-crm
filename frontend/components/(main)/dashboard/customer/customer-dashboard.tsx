@@ -40,24 +40,62 @@ const getInteractionIcon = (type: InteractionType) => {
   }
 };
 
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour in milliseconds
+const RECOMMENDATIONS_CACHE_KEY = 'customer_recommendations_cache';
+
+interface CachedRecommendations {
+  recommendations: Recommendation[];
+  timestamp: number;
+}
+
+const getCachedRecommendations = (): CachedRecommendations | null => {
+  const cached = localStorage.getItem(RECOMMENDATIONS_CACHE_KEY);
+  if (!cached) return null;
+
+  const parsed = JSON.parse(cached) as CachedRecommendations;
+  const now = Date.now();
+
+  if (now - parsed.timestamp > CACHE_DURATION) {
+    localStorage.removeItem(RECOMMENDATIONS_CACHE_KEY);
+    return null;
+  }
+
+  return parsed;
+};
+
+const setCachedRecommendations = (recommendations: Recommendation[]) => {
+  const cache: CachedRecommendations = {
+    recommendations,
+    timestamp: Date.now()
+  };
+  localStorage.setItem(RECOMMENDATIONS_CACHE_KEY, JSON.stringify(cache));
+};
+
 export function CustomerDashboard() {
   const [accountDetails, setAccountDetails] = useState<AccountDetails | null>(null)
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([])
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isRecommendationsLoading, setIsRecommendationsLoading] = useState(true)
+  const [expandedDescriptions, setExpandedDescriptions] = useState<{ [key: string]: boolean }>({})
+
+  const toggleDescription = (recId: string) => {
+    setExpandedDescriptions(prev => ({
+      ...prev,
+      [recId]: !prev[recId]
+    }))
+  }
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const [accountResponse, ticketsResponse, recommendationsResponse] = await Promise.all([
-          api.get<AccountDetails>('/api/customer/account'),
-          api.get<SupportTicket[]>('/api/customer/support-ticket'),
-          api.get<Recommendation[]>('/api/customer/recommendation')
+        const [accountResponse, ticketsResponse] = await Promise.all([
+          api.get<AccountDetails>('/api/users/account'),
+          api.get<SupportTicket[]>('/api/customer/support-ticket')
         ])
 
         setAccountDetails(accountResponse)
         setSupportTickets(Array.isArray(ticketsResponse) ? ticketsResponse : [])
-        setRecommendations(Array.isArray(recommendationsResponse) ? recommendationsResponse : [])
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error)
         toast.error('Failed to load dashboard data')
@@ -66,7 +104,31 @@ export function CustomerDashboard() {
       }
     }
 
+    const fetchRecommendations = async () => {
+      try {
+        // Check cache first
+        const cached = getCachedRecommendations();
+        if (cached) {
+          setRecommendations(cached.recommendations);
+          setIsRecommendationsLoading(false);
+          return;
+        }
+
+        // If no cache or expired, fetch from API
+        const recommendationsResponse = await api.get<Recommendation[]>('/api/customer/recommendation')
+        const recommendations = Array.isArray(recommendationsResponse) ? recommendationsResponse : [];
+        setRecommendations(recommendations);
+        setCachedRecommendations(recommendations);
+      } catch (error) {
+        console.error('Failed to fetch recommendations:', error)
+        toast.error('Failed to load recommendations')
+      } finally {
+        setIsRecommendationsLoading(false)
+      }
+    }
+
     fetchDashboardData()
+    fetchRecommendations()
   }, [])
 
   if (isLoading) {
@@ -428,61 +490,58 @@ export function CustomerDashboard() {
       </div>
 
       {/* Recommendations */}
-      <motion.div variants={itemVariants}>
-        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Lightbulb className="w-6 h-6 text-[var(--primary)]" />
-              Personalized Recommendations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {recommendations.length === 0 ? (
-              <div className="text-center py-8">
-                <Lightbulb className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                <p className="text-[var(--text-tertiary)]">
-                  No recommendations available at this time
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <AnimatePresence>
-                  {recommendations.slice(0, 3).map((rec, index) => (
-                    <motion.div
-                      key={`${rec.type}-${index}`}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      transition={{ duration: 0.3, delay: index * 0.1 }}
-                      className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                          <Lightbulb className="w-5 h-5 text-[var(--primary)]" />
+      {!isRecommendationsLoading && (
+        <motion.div variants={itemVariants}>
+          <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Lightbulb className="w-6 h-6 text-[var(--primary)]" />
+                Personalized Recommendations
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {recommendations.length === 0 ? (
+                <div className="text-center py-8">
+                  <Lightbulb className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+                  <p className="text-[var(--text-tertiary)]">
+                    No recommendations available at this time
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <AnimatePresence>
+                    {recommendations.slice(0, 3).map((rec, index) => (
+                      <motion.div
+                        key={`${rec.type}-${index}`}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ duration: 0.3, delay: index * 0.1 }}
+                        onClick={() => toggleDescription(`${rec.type}-${index}`)}
+                        className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group cursor-pointer"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                            <Lightbulb className="w-5 h-5 text-[var(--primary)]" />
+                          </div>
+                          <div className="flex-1">
+                            <h3 className="font-medium group-hover:text-[var(--primary)] transition-colors">{rec.title}</h3>
+                            <div>
+                              <p className={`text-sm text-[var(--text-secondary)] ${!expandedDescriptions[`${rec.type}-${index}`] ? 'line-clamp-1' : ''}`}>
+                                {rec.description}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium group-hover:text-[var(--primary)] transition-colors">{rec.title}</h3>
-                          <p className="text-sm text-[var(--text-secondary)] line-clamp-1">{rec.description}</p>
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-[var(--primary)]">
-                        {Math.round(rec.score * 100)}% match
-                      </Badge>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
-              </div>
-            )}
-            <div className="mt-4">
-              <Link href="/dashboard/recommendations">
-                <Button variant="outline" size="sm" className="w-full gap-2 group">
-                  View All Recommendations
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
     </motion.div>
   )
 }

@@ -58,7 +58,7 @@ export default function AccountPage() {
 
   const fetchAccountDetails = async () => {
     try {
-      const response = await api.get<AccountDetails>("/api/customer/account");
+      const response = await api.get<AccountDetails>("/api/users/account");
       setAccountDetails(response);
 
     } catch (error) {

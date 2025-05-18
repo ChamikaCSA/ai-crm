@@ -17,8 +17,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Fetch customer account data from backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customer/account`, {
+    // Fetch account data from backend
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/account`, {
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ export async function GET() {
     const accountData = await response.json()
     return NextResponse.json(accountData.data)
   } catch (error) {
-    console.error('Error in customer account API:', error)
+    console.error('Error in account API:', error)
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

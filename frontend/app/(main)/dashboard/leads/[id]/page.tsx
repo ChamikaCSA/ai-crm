@@ -13,6 +13,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LeadDialog } from '../lead-dialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Progress } from "@/components/ui/progress"
+import { Modal } from "@/components/ui/modal"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { Calendar as CalendarComponent } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
 
 interface Lead {
   _id: string;
@@ -65,6 +75,10 @@ export default function LeadViewPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [leadDetails, setLeadDetails] = useState<Lead | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false)
+  const [emailSubject, setEmailSubject] = useState('')
+  const [emailBody, setEmailBody] = useState('')
+  const [isSendingEmail, setIsSendingEmail] = useState(false)
 
   useEffect(() => {
     if (params.id) {
@@ -111,7 +125,35 @@ export default function LeadViewPage() {
 
   const formatCurrency = (value: number) => `$${value.toLocaleString()}`
   const formatDate = (date: string | Date) => new Date(date).toLocaleString()
-  const formatEnum = (value: string) => value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ')
+  const formatEnum = (value?: string) => value ? value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ') : ''
+
+  const handleSendEmail = async () => {
+    if (!emailSubject || !emailBody) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    if (isSendingEmail) return
+
+    try {
+      setIsSendingEmail(true)
+      await api.post(`/api/sales-rep/leads/${params.id}/email`, {
+        subject: emailSubject,
+        body: emailBody,
+        recipient: leadDetails?.email
+      })
+
+      toast.success('Email sent successfully')
+      setIsEmailDialogOpen(false)
+      setEmailSubject('')
+      setEmailBody('')
+    } catch (error) {
+      console.error('Failed to send email:', error)
+      toast.error('Failed to send email')
+    } finally {
+      setIsSendingEmail(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -159,7 +201,7 @@ export default function LeadViewPage() {
           <div>
             <h1 className="text-2xl font-bold">Lead Details</h1>
             <p className="text-sm text-muted-foreground">
-              Last updated {formatDate(leadDetails.updatedAt)}
+              {leadDetails.firstName} {leadDetails.lastName}
             </p>
           </div>
         </div>
@@ -238,12 +280,7 @@ export default function LeadViewPage() {
                     <h4 className="text-sm font-medium">Lead Score</h4>
                   </div>
                   <div className="flex items-center gap-4">
-                    <div className="flex-1 bg-[var(--accent)]/50 rounded-full h-2.5">
-                      <div
-                        className="bg-primary h-2.5 rounded-full transition-all duration-300"
-                        style={{ width: `${leadDetails.leadScore || 0}%` }}
-                      />
-                    </div>
+                    <Progress value={leadDetails.leadScore || 0} className="flex-1" />
                     <span className="text-lg font-medium">{leadDetails.leadScore || 0}%</span>
                   </div>
                 </div>
@@ -372,12 +409,7 @@ export default function LeadViewPage() {
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center gap-4">
-                            <div className="flex-1 bg-secondary rounded-full h-2.5">
-                              <div
-                                className="bg-primary h-2.5 rounded-full transition-all duration-300"
-                                style={{ width: `${leadDetails.aiInsights.engagementScore || 0}%` }}
-                              />
-                            </div>
+                            <Progress value={leadDetails.aiInsights.engagementScore || 0} className="flex-1" />
                             <span className="text-lg font-medium">{leadDetails.aiInsights.engagementScore || 0}%</span>
                           </div>
                         </div>
@@ -389,12 +421,7 @@ export default function LeadViewPage() {
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-center gap-4">
-                            <div className="flex-1 bg-secondary rounded-full h-2.5">
-                              <div
-                                className="bg-primary h-2.5 rounded-full transition-all duration-300"
-                                style={{ width: `${leadDetails.aiInsights.conversionProbability || 0}%` }}
-                              />
-                            </div>
+                            <Progress value={leadDetails.aiInsights.conversionProbability || 0} className="flex-1" />
                             <span className="text-lg font-medium">{leadDetails.aiInsights.conversionProbability || 0}%</span>
                           </div>
                         </div>
@@ -485,13 +512,12 @@ export default function LeadViewPage() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Button className="w-full justify-start gap-2">
+              <Button
+                className="w-full justify-start gap-2"
+                onClick={() => setIsEmailDialogOpen(true)}
+              >
                 <Mail className="h-4 w-4" />
                 Send Email
-              </Button>
-              <Button className="w-full justify-start gap-2">
-                <Phone className="h-4 w-4" />
-                Schedule Call
               </Button>
             </CardContent>
           </Card>
@@ -523,6 +549,51 @@ export default function LeadViewPage() {
         onOpenChange={setIsEditDialogOpen}
         onLeadUpdated={fetchLeadDetails}
       />
+
+      <Modal
+        isOpen={isEmailDialogOpen}
+        onClose={() => setIsEmailDialogOpen(false)}
+        title="Send Email"
+      >
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject</Label>
+            <Input
+              id="subject"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="Enter email subject"
+              disabled={isSendingEmail}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="body">Message</Label>
+            <Textarea
+              id="body"
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
+              placeholder="Enter your message"
+              className="min-h-[200px]"
+              disabled={isSendingEmail}
+            />
+          </div>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setIsEmailDialogOpen(false)}
+              disabled={isSendingEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendEmail}
+              disabled={isSendingEmail}
+            >
+              {isSendingEmail ? 'Sending...' : 'Send Email'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

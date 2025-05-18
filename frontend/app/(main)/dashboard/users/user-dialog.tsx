@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -136,133 +136,136 @@ export function UserDialog({ open, onOpenChange, onUserUpdated, userId, trigger 
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{userId ? 'Edit User' : 'Add New User'}</DialogTitle>
-          <DialogDescription>
+    <>
+      {trigger}
+      <Modal
+        isOpen={open}
+        onClose={() => onOpenChange(false)}
+        title={userId ? 'Edit User' : 'Add New User'}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-tertiary)]">
             {userId ? 'Update user details below.' : 'Create a new user account.'}
-          </DialogDescription>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={user.email}
-              onChange={(e) => setUser({ ...user, email: e.target.value })}
-              required
-            />
-          </div>
-          {!userId && (
+          </p>
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">Initial Password</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="password"
-                  type="text"
-                  value={password}
-                  readOnly
-                  className="font-mono"
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleCopyPassword}
-                  title="Copy password"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={handleRegeneratePassword}
-                  title="Generate new password"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                </Button>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={user.email}
+                onChange={(e) => setUser({ ...user, email: e.target.value })}
+                required
+              />
+            </div>
+            {!userId && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Initial Password</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="password"
+                    type="text"
+                    value={password}
+                    readOnly
+                    className="font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleCopyPassword}
+                    title="Copy password"
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={handleRegeneratePassword}
+                    title="Generate new password"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  This password will be shown only once. Make sure to copy it.
+                </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                This password will be shown only once. Make sure to copy it.
-              </p>
+            )}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                <Input
+                  id="firstName"
+                  value={user.firstName}
+                  onChange={(e) => setUser({ ...user, firstName: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                <Input
+                  id="lastName"
+                  value={user.lastName}
+                  onChange={(e) => setUser({ ...user, lastName: e.target.value })}
+                  required
+                />
+              </div>
             </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="firstName">First Name</Label>
-              <Input
-                id="firstName"
-                value={user.firstName}
-                onChange={(e) => setUser({ ...user, firstName: e.target.value })}
-                required
-              />
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={user.role}
+                onValueChange={(value) => setUser({ ...user, role: value as UserRole })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
+                  <SelectItem value={UserRole.SALES_REP}>Sales Rep</SelectItem>
+                  <SelectItem value={UserRole.SALES_MANAGER}>Sales Manager</SelectItem>
+                  <SelectItem value={UserRole.MARKETING_SPECIALIST}>Marketing Specialist</SelectItem>
+                  <SelectItem value={UserRole.DATA_ANALYST}>Data Analyst</SelectItem>
+                  <SelectItem value={UserRole.CUSTOMER}>Customer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="lastName">Last Name</Label>
-              <Input
-                id="lastName"
-                value={user.lastName}
-                onChange={(e) => setUser({ ...user, lastName: e.target.value })}
-                required
-              />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="mfa"
+                  checked={user.isMfaEnabled}
+                  onCheckedChange={(checked) => setUser({ ...user, isMfaEnabled: checked })}
+                />
+                <Label htmlFor="mfa">Enable MFA</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="active"
+                  checked={user.isActive}
+                  onCheckedChange={(checked) => setUser({ ...user, isActive: checked })}
+                />
+                <Label htmlFor="active">Active</Label>
+              </div>
             </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="role">Role</Label>
-            <Select
-              value={user.role}
-              onValueChange={(value) => setUser({ ...user, role: value as UserRole })}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                <SelectItem value={UserRole.SALES_REP}>Sales Rep</SelectItem>
-                <SelectItem value={UserRole.SALES_MANAGER}>Sales Manager</SelectItem>
-                <SelectItem value={UserRole.MARKETING_SPECIALIST}>Marketing Specialist</SelectItem>
-                <SelectItem value={UserRole.DATA_ANALYST}>Data Analyst</SelectItem>
-                <SelectItem value={UserRole.CUSTOMER}>Customer</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="mfa"
-                checked={user.isMfaEnabled}
-                onCheckedChange={(checked) => setUser({ ...user, isMfaEnabled: checked })}
-              />
-              <Label htmlFor="mfa">Enable MFA</Label>
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? 'Saving...' : userId ? 'Update User' : 'Create User'}
+              </Button>
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="active"
-                checked={user.isActive}
-                onCheckedChange={(checked) => setUser({ ...user, isActive: checked })}
-              />
-              <Label htmlFor="active">Active</Label>
-            </div>
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? 'Saving...' : userId ? 'Update User' : 'Create User'}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </form>
+        </div>
+      </Modal>
+    </>
   )
 }

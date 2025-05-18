@@ -4,6 +4,8 @@ import { SalesRepController } from './sales-rep.controller';
 import { SalesRepService } from './sales-rep.service';
 import { Lead, LeadSchema } from './schemas/lead.schema';
 import { Performance, PerformanceSchema } from './schemas/performance.schema';
+import { EmailService } from '../common/services/email.service';
+import { AIModule } from '../ai/ai.module';
 
 @Module({
   imports: [
@@ -11,9 +13,10 @@ import { Performance, PerformanceSchema } from './schemas/performance.schema';
       { name: Lead.name, schema: LeadSchema },
       { name: Performance.name, schema: PerformanceSchema },
     ]),
+    AIModule,
   ],
   controllers: [SalesRepController],
-  providers: [SalesRepService],
+  providers: [SalesRepService, EmailService],
   exports: [SalesRepService],
 })
 export class SalesRepModule {}

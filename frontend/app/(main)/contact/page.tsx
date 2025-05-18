@@ -146,7 +146,7 @@ export default function ContactPage() {
     try {
       setIsSubmitting(true)
       const { message, ...leadData } = data;
-      await api.post('/api/leads', {
+      await api.post('/api/customer/lead', {
         ...leadData,
         source: LeadSource.WEBSITE,
         status: LeadStatus.NEW,

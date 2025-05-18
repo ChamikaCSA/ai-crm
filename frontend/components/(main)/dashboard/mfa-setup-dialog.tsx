@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Modal } from '@/components/ui/modal'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -83,24 +83,21 @@ export function MfaSetupDialog({ userId }: MfaSetupDialogProps) {
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline">
-          {user?.isMfaEnabled ? 'Disable' : 'Enable'}
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>
-            {user?.isMfaEnabled ? 'Disable Two-Factor Authentication' : 'Set Up Two-Factor Authentication'}
-          </DialogTitle>
-          <DialogDescription>
+    <>
+      <Button variant="outline" onClick={() => setIsOpen(true)}>
+        {user?.isMfaEnabled ? 'Disable' : 'Enable'}
+      </Button>
+      <Modal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title={user?.isMfaEnabled ? 'Disable Two-Factor Authentication' : 'Set Up Two-Factor Authentication'}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-tertiary)]">
             {user?.isMfaEnabled
               ? 'Are you sure you want to disable two-factor authentication? This will make your account less secure.'
               : 'Scan the QR code with your authenticator app and enter the verification code below.'}
-          </DialogDescription>
-        </DialogHeader>
-        <div className="grid gap-4 py-4">
+          </p>
           {user?.isMfaEnabled ? (
             <div className="space-y-4">
               <p className="text-sm text-[var(--text-tertiary)]">
@@ -140,7 +137,7 @@ export function MfaSetupDialog({ userId }: MfaSetupDialogProps) {
             </>
           )}
         </div>
-      </DialogContent>
-    </Dialog>
+      </Modal>
+    </>
   )
 }

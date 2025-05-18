@@ -31,13 +31,21 @@ export enum PreferredContactMethod {
 
 @Schema({ timestamps: true })
 export class Lead extends Document {
+  @ApiProperty({ description: 'First name' })
+  @Prop({ required: true })
+  firstName: string;
+
+  @ApiProperty({ description: 'Last name' })
+  @Prop({ required: true })
+  lastName: string;
+
   @ApiProperty({ description: 'Company name' })
   @Prop({ required: true })
-  companyName: string;
+  company: string;
 
-  @ApiProperty({ description: 'Contact person name' })
-  @Prop({ required: true })
-  contactName: string;
+  @ApiProperty({ description: 'Job title' })
+  @Prop()
+  jobTitle: string;
 
   @ApiProperty({ description: 'Contact email' })
   @Prop({ required: true })
@@ -55,16 +63,16 @@ export class Lead extends Document {
   @Prop({ type: String, enum: LeadSource, required: true })
   source: LeadSource;
 
-  @ApiProperty({ description: 'Estimated deal value' })
+  @ApiProperty({ description: 'Lead score (0-100)' })
   @Prop({ type: Number, default: 0 })
-  value: number;
+  leadScore: number;
 
   @ApiProperty({ description: 'Notes about the lead' })
   @Prop()
   notes: string;
 
   @ApiProperty({ description: 'Assigned sales representative ID' })
-  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User', required: true })
+  @Prop({ type: MongooseSchema.Types.ObjectId, ref: 'User' })
   assignedTo: string;
 
   @ApiProperty({ description: 'Last contact date' })
@@ -85,13 +93,13 @@ export class Lead extends Document {
 
   @Prop({ type: Object })
   preferences: {
-    preferredContactMethod: PreferredContactMethod;
-    preferredContactTime: string;
-    interests: string[];
-    budget: number;
-    timeline: string;
-    painPoints: string[];
-    decisionMaker: boolean;
+    preferredContactMethod?: PreferredContactMethod;
+    preferredContactTime?: string;
+    interests?: string[];
+    budget?: number;
+    timeline?: string;
+    painPoints?: string[];
+    decisionMaker?: boolean;
   };
 
   @Prop({ type: Object })
@@ -124,11 +132,11 @@ export class Lead extends Document {
 
   @Prop({ type: Object })
   demographics: {
-    industry: string;
-    companySize: string;
-    location: string;
-    annualRevenue: number;
-    employeeCount: number;
+    industry?: string;
+    companySize?: string;
+    location?: string;
+    annualRevenue?: number;
+    employeeCount?: number;
   };
 }
 

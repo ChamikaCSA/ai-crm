@@ -17,14 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { Modal } from '@/components/ui/modal'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
@@ -486,14 +479,15 @@ export default function AnalysisPage() {
         </Card>
       </motion.div>
 
-      <Dialog open={isCustomizing} onOpenChange={setIsCustomizing}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Customize Dashboard</DialogTitle>
-            <DialogDescription>
-              Create a new dashboard with your preferred metrics and settings.
-            </DialogDescription>
-          </DialogHeader>
+      <Modal
+        isOpen={isCustomizing}
+        onClose={() => setIsCustomizing(false)}
+        title="Customize Dashboard"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-[var(--text-tertiary)]">
+            Create a new dashboard with your preferred metrics and settings.
+          </p>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="name" className="text-right">
@@ -574,16 +568,16 @@ export default function AnalysisPage() {
               </div>
             </div>
           </div>
-          <DialogFooter>
+          <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => setIsCustomizing(false)}>
               Cancel
             </Button>
             <Button onClick={handleSaveDashboard}>
               Save Dashboard
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        </div>
+      </Modal>
     </motion.div>
   )
 }

@@ -1,7 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { Interaction } from '../customer/schemas/interaction.schema';
+import { RecommendationType, RecommendationPriority, RecommendationDto } from '../customer/dto/recommendations.dto';
 
 @Injectable()
 export class aiService {
@@ -13,55 +15,194 @@ export class aiService {
     });
   }
 
-  async generateRecommendations(interactions: Interaction[]) {
-    // Mock recommendations for testing
-    return [
-      {
-        id: '1',
-        title: 'Follow up with customer',
-        description: 'Customer showed interest in premium features during last interaction',
-        priority: 'high',
-        action: 'Schedule a call to discuss premium features',
-        score: 0.85,
-        type: 'follow_up'
-      },
-      {
-        id: '2',
-        title: 'Send product documentation',
-        description: 'Customer asked about integration capabilities',
-        priority: 'medium',
-        action: 'Share integration guide and API documentation',
-        score: 0.75,
-        type: 'documentation'
-      },
-      {
-        id: '3',
-        title: 'Check customer satisfaction',
-        description: 'Customer had a support ticket resolved recently',
-        priority: 'low',
-        action: 'Send satisfaction survey',
-        score: 0.65,
-        type: 'feedback'
+  async generateRecommendations(
+    interactions: any[],
+    userContext: {
+      user: any;
+      usersLeads: any[];
+      supportHistory: any[];
+    }
+  ): Promise<RecommendationDto[]> {
+    try {
+      const prompt = `Analyze the following user data and generate personalized recommendations:
+
+User Context: ${JSON.stringify(userContext)}
+
+Based on this data, provide 3-5 personalized recommendations that:
+1. Focus on improving the customer's own experience with the CRM system
+2. Consider their support ticket history and pain points
+3. Align with their preferences and past interactions
+4. Suggest next steps based on their usage patterns and AI insights
+5. Include specific, actionable items
+
+Format the response as a JSON array of recommendations, each with:
+{
+  "title": "Short, clear title",
+  "description": "Detailed explanation in a friendly, encouraging tone",
+  "priority": "high|medium|low",
+  "actionItems": ["Specific action 1", "Specific action 2"],
+  "expectedOutcome": "What to expect from following this recommendation"
+}
+
+Important:
+- Write the recommendations in a friendly, encouraging tone that would be appropriate to show directly to users
+- Focus on helping the user improve their own experience with the CRM system
+- Focus on system usage, feature adoption, and personal productivity
+- Avoid mentioning specific user names or making the recommendations sound like internal notes
+- Focus on positive outcomes and opportunities rather than problems or issues`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant that generates personalized recommendations to help users improve their experience with the CRM system. Focus on actionable suggestions that help users get more value from the system. Write in a friendly, encouraging tone that would be appropriate to show directly to users.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      });
+
+      const recommendations = JSON.parse(response.choices[0].message.content);
+      return recommendations;
+    } catch (error) {
+      console.error('Error generating recommendations:', error);
+      return [];
+    }
+  }
+
+  private analyzeInteractionPatterns(interactions: Interaction[]) {
+    const patterns = {
+      frequentFeatures: new Map<string, number>(),
+      commonIssues: new Map<string, number>(),
+      timeOfDay: new Map<string, number>(),
+      sessionDuration: [] as number[],
+      featureUsage: new Map<string, number>(),
+      supportNeeds: new Map<string, number>()
+    };
+
+    interactions.forEach(interaction => {
+      // Track feature usage
+      if (interaction.type === 'FEATURE_USAGE') {
+        const feature = interaction.metadata?.featureName;
+        if (feature) {
+          patterns.frequentFeatures.set(
+            feature,
+            (patterns.frequentFeatures.get(feature) || 0) + 1
+          );
+        }
       }
-    ];
+
+      // Track support needs
+      if (interaction.type === 'SUPPORT_TICKET') {
+        const issue = interaction.metadata?.issueType;
+        if (issue) {
+          patterns.supportNeeds.set(
+            issue,
+            (patterns.supportNeeds.get(issue) || 0) + 1
+          );
+        }
+      }
+
+      // Track time patterns
+      const hour = new Date(interaction.createdAt).getHours();
+      const timeSlot = `${hour}:00`;
+      patterns.timeOfDay.set(
+        timeSlot,
+        (patterns.timeOfDay.get(timeSlot) || 0) + 1
+      );
+
+      // Track session duration if available
+      if (interaction.metadata?.duration) {
+        patterns.sessionDuration.push(interaction.metadata.duration);
+      }
+    });
+
+    return {
+      mostUsedFeatures: Array.from(patterns.frequentFeatures.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5),
+      commonSupportIssues: Array.from(patterns.supportNeeds.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3),
+      peakUsageHours: Array.from(patterns.timeOfDay.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3),
+      averageSessionDuration: patterns.sessionDuration.length > 0
+        ? patterns.sessionDuration.reduce((a, b) => a + b, 0) / patterns.sessionDuration.length
+        : 0
+    };
   }
 
   async generateChatResponse(
     message: string,
-    userName: string,
-    sessionId: string,
+    userContext: {
+      user: any;
+      usersLeads: any[];
+      supportHistory: any[];
+    },
+    chatHistory?: { role: string; content: string }[]
   ): Promise<string> {
     try {
+      const context = `You are an AI-powered customer support assistant for our CRM system. You interact exclusively with customers to help them with their needs and queries.
+
+Key Customer Support Capabilities:
+1. Account & Profile Support
+   - Account management assistance
+   - Profile updates and preferences
+   - Access to account details
+   - Security and privacy help
+
+2. Product & Service Support
+   - Feature explanations and guidance
+   - Usage tips and best practices
+   - Troubleshooting assistance
+   - System navigation help
+
+3. Personalized Assistance
+   - Real-time support for immediate queries
+   - Personalized recommendations based on usage
+   - Tailored guidance based on customer history
+   - Proactive suggestions for better experience
+
+The context of the user you are talking to is: ${JSON.stringify(userContext)}
+
+Please provide helpful, accurate responses that:
+- Focus on improving the customer's experience
+- Provide clear, step-by-step guidance when needed
+- Maintain a friendly and supportive tone
+- Respect customer privacy and data security
+- Direct customers to appropriate resources or support channels when needed
+- Offer personalized suggestions based on their usage patterns`;
+
+      const messages: ChatCompletionMessageParam[] = [
+        {
+          role: 'system',
+          content: context
+        }
+      ];
+
+      // Add chat history if available
+      if (chatHistory && chatHistory.length > 0) {
+        messages.push(...chatHistory.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        })));
+      }
+
+      // Add the current message
+      messages.push({
+        role: 'user',
+        content: message
+      });
+
       const completion = await this.openai.chat.completions.create({
-        messages: [
-          {
-            role: 'system',
-            content: `You are a helpful customer support assistant for our CRM system.
-                     The user you're talking to is ${userName}.`,
-          },
-          { role: 'user', content: message },
-        ],
-        model: 'gpt-3.5-turbo',
+        messages,
+        model: 'gpt-4',
       });
 
       return completion.choices[0].message.content || 'I apologize, but I could not generate a response.';
@@ -262,5 +403,76 @@ export class aiService {
         trendAnalysis
       }
     };
+  }
+
+  async generateLeadScore(leadData: any) {
+    try {
+      const prompt = `Analyze the following lead data and provide a comprehensive scoring and insights:
+
+      Lead Information:
+      - Name: ${leadData.firstName} ${leadData.lastName}
+      - Company: ${leadData.company}
+      - Job Title: ${leadData.jobTitle}
+      - Email: ${leadData.email}
+      - Phone: ${leadData.phone}
+      - Source: ${leadData.source}
+
+      Additional Data:
+      - Preferences: ${JSON.stringify(leadData.preferences, null, 2)}
+      - Demographics: ${JSON.stringify(leadData.demographics, null, 2)}
+      - Channel History: ${JSON.stringify(leadData.channelHistory, null, 2)}
+
+      Please provide:
+      1. Lead Score (0-100)
+      2. Engagement Score (0-100)
+      3. Conversion Probability (0-100)
+      4. Next Best Action
+      5. Risk Factors
+      6. Opportunity Areas
+
+      Format the response in a structured way that can be easily parsed.`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are an AI assistant specialized in lead scoring and analysis. Your analysis should be based on the lead\'s profile, behavior, and potential value. Always return valid JSON.'
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 500
+      });
+
+      const content = response.choices[0].message.content || '{}';
+      const analysis = JSON.parse(content);
+
+      return {
+        leadScore: analysis.leadScore || 0,
+        aiInsights: {
+          engagementScore: analysis.engagementScore || 0,
+          conversionProbability: analysis.conversionProbability || 0,
+          nextBestAction: analysis.nextBestAction || 'Schedule initial contact',
+          riskFactors: analysis.riskFactors || [],
+          opportunityAreas: analysis.opportunityAreas || [],
+          lastScoredAt: new Date()
+        }
+      };
+    } catch (error) {
+      console.error('Error generating lead score:', error);
+      // Fallback to basic scoring if AI fails
+      return {
+        leadScore: 0,
+        aiInsights: {
+          engagementScore: 0,
+          conversionProbability: 0,
+          nextBestAction: 'Schedule initial contact',
+          riskFactors: [],
+          opportunityAreas: [],
+          lastScoredAt: new Date()
+        }
+      };
+    }
   }
 }

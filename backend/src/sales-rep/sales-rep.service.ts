@@ -3,11 +3,18 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Lead, LeadStatus } from './schemas/lead.schema';
 import { CreateLeadDto } from './dto/create-lead.dto';
+import { LeadSource } from './schemas/lead.schema';
+import { UpdateLeadDto } from './dto/update-lead.dto';
+import { SendEmailDto } from './dto/send-email.dto';
+import { EmailService } from '../common/services/email.service';
+import { aiService } from '../ai/ai.service';
 
 @Injectable()
 export class SalesRepService {
   constructor(
     @InjectModel(Lead.name) private leadModel: Model<Lead>,
+    private readonly emailService: EmailService,
+    private readonly aiService: aiService,
   ) {}
 
   async getStats(userId: string) {
@@ -73,8 +80,20 @@ export class SalesRepService {
   }
 
   async createLead(createLeadDto: CreateLeadDto): Promise<Lead> {
-    const createdLead = new this.leadModel(createLeadDto);
-    return createdLead.save();
+    try {
+      // Get AI-powered lead score and insights
+      const { leadScore, aiInsights } = await this.aiService.generateLeadScore(createLeadDto);
+
+      const createdLead = new this.leadModel({
+        ...createLeadDto,
+        leadScore,
+        aiInsights
+      });
+      return createdLead.save();
+    } catch (error) {
+      console.error('Failed to create lead:', error);
+      throw error;
+    }
   }
 
   async getLead(id: string): Promise<Lead> {
@@ -156,5 +175,29 @@ export class SalesRepService {
       conversionRate,
       topLeads
     };
+  }
+
+  async sendEmail(leadId: string, sendEmailDto: SendEmailDto): Promise<void> {
+    const lead = await this.leadModel.findById(leadId);
+    if (!lead) {
+      throw new NotFoundException('Lead not found');
+    }
+
+    // Send the email using the email service
+    await this.emailService.sendEmail({
+      to: sendEmailDto.recipient,
+      subject: sendEmailDto.subject,
+      text: sendEmailDto.body,
+    });
+
+    // Add the email interaction to the lead's channel history
+    lead.channelHistory.push({
+      channel: LeadSource.EMAIL,
+      timestamp: new Date(),
+      interactionType: 'EMAIL_SENT',
+      notes: `Email sent: ${sendEmailDto.subject}`,
+    });
+
+    await lead.save();
   }
 }

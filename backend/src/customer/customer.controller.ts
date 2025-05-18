@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req, NotFoundException, UseInterceptors, UploadedFiles, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Req, NotFoundException, UseInterceptors, UploadedFiles, Res, Request } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Request, Response } from 'express';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../user/schemas/user.schema';
+import { Response } from 'express';
 import { CreateSupportTicketDto } from './dto/create-support-ticket.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-ticket.dto';
 import { ChatbotMessageDto, ChatbotResponseDto } from './dto/chatbot-message.dto';
@@ -10,6 +13,9 @@ import { TicketReplyDto } from './dto/ticket-reply.dto';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { join } from 'path';
 import { InteractionType } from './schemas/interaction.schema';
+import { CreateCustomerLeadDto } from './dto/create-customer-lead.dto';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Lead } from '../sales-rep/schemas/lead.schema';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -26,15 +32,11 @@ interface RequestWithUser extends Request {
   };
 }
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.CUSTOMER)
 @Controller('customer')
 export class CustomerController {
   constructor(private readonly customerService: CustomerService) {}
-
-  @Get('account')
-  async getAccountDetails(@Req() req: AuthenticatedRequest) {
-    return this.customerService.getAccountDetails(req.user.sub);
-  }
 
   @Get('recommendation')
   async getRecommendations(@Req() req: AuthenticatedRequest): Promise<RecommendationDto[]> {
@@ -126,7 +128,11 @@ export class CustomerController {
     @Req() req: AuthenticatedRequest,
     @Body() messageDto: ChatbotMessageDto,
   ): Promise<ChatbotResponseDto> {
-    return this.customerService.handleChatbotMessage(req.user.sub, messageDto.message);
+    return this.customerService.handleChatbotMessage(
+      req.user.sub,
+      messageDto.message,
+      messageDto.chatHistory
+    );
   }
 
   @Post('support-ticket/:id/reply')
@@ -193,5 +199,24 @@ export class CustomerController {
       body.description,
       body.metadata,
     );
+  }
+
+  @Post('lead')
+  @ApiOperation({ summary: 'Create a new lead as a customer' })
+  @ApiResponse({ status: 201, description: 'Lead created successfully', type: Lead })
+  @UseGuards(JwtAuthGuard)
+  async createLead(
+    @Body() createCustomerLeadDto: CreateCustomerLeadDto,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<Lead> {
+    return this.customerService.createLead(createCustomerLeadDto, req.user.sub);
+  }
+
+  @Get('leads')
+  @ApiOperation({ summary: 'Get all leads for the authenticated customer' })
+  @ApiResponse({ status: 200, description: 'Returns all leads for the customer', type: [Lead] })
+  @UseGuards(JwtAuthGuard)
+  async getCustomerLeads(@Request() req: AuthenticatedRequest): Promise<Lead[]> {
+    return this.customerService.getCustomerLeads(req.user.sub);
   }
 }

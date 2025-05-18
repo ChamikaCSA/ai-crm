@@ -12,6 +12,9 @@ import { TicketReplyDto } from './dto/ticket-reply.dto';
 import { aiService } from '../ai/ai.service';
 import { SupportTicketStatus } from './schemas/support-ticket.schema';
 import { InteractionType } from './schemas/interaction.schema';
+import { Lead } from '../sales-rep/schemas/lead.schema';
+import { CreateCustomerLeadDto } from './dto/create-customer-lead.dto';
+import { LeadSource, LeadStatus } from '../sales-rep/schemas/lead.schema';
 
 @Injectable()
 export class CustomerService {
@@ -20,59 +23,50 @@ export class CustomerService {
     @InjectModel(Interaction.name) private interactionModel: Model<InteractionDocument>,
     @InjectModel(SupportTicket.name) private supportTicketModel: Model<SupportTicketDocument>,
     private aiService: aiService,
+    @InjectModel(Lead.name) private leadModel: Model<Lead>,
   ) {}
-
-  // Account related methods
-  async getAccountDetails(userId: string) {
-    const user = await this.userModel.findById(userId).select('-password');
-
-    // Get additional account information
-    const accountInfo = {
-      user,
-      recentInteractions: await this.getRecentInteractions(userId),
-      accountStatus: await this.getAccountStatus(userId),
-    };
-
-    return accountInfo;
-  }
-
-  private async getRecentInteractions(userId: string) {
-    const interactions = await this.interactionModel
-      .find({ userId })
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .exec();
-
-    return interactions.map(interaction => ({
-      type: interaction.type,
-      description: interaction.description,
-      timestamp: interaction.createdAt.toISOString(),
-      metadata: interaction.metadata
-    }));
-  }
-
-  private async getAccountStatus(userId: string) {
-    // Implementation for getting account status
-    return {
-      status: 'active',
-      lastLogin: new Date(),
-      subscriptionStatus: 'active',
-    };
-  }
 
   // Recommendation related methods
   async getRecommendations(userId: string): Promise<RecommendationDto[]> {
     try {
+      // Get user's profile and preferences
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
       // Get user's recent interactions
       const recentInteractions = await this.interactionModel
         .find({ userId })
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(20)
         .exec();
 
-      // Use OpenAI to generate personalized recommendations
+      // Get user's support tickets for additional context
+      const supportTickets = await this.supportTicketModel
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .exec();
+
+      // Get user's leads for additional context
+      const leads = await this.leadModel
+        .find({ user: userId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .exec();
+
+      // Prepare user context
+      const userContext = {
+        user,
+        usersLeads: leads,
+        supportHistory: supportTickets,
+      };
+
+      // Use OpenAI to generate personalized recommendations with enhanced context
       const recommendations = await this.aiService.generateRecommendations(
         recentInteractions,
+        userContext
       );
 
       return recommendations;
@@ -167,10 +161,9 @@ export class CustomerService {
     }
 
     const reply = {
-      author: userId,
-      message: replyDto.message,
-      timestamp: new Date(),
-      attachments: replyDto.attachments || [],
+      userId: userId,
+      content: replyDto.message,
+      createdAt: new Date()
     }
 
     supportTicket.replies.push(reply)
@@ -180,25 +173,91 @@ export class CustomerService {
   }
 
   // Chatbot related methods
-  async handleChatbotMessage(userId: string, message: string): Promise<ChatbotResponseDto> {
-    // Get conversation history for context
-    const conversationHistory = await this.getConversationHistory(userId);
+  async handleChatbotMessage(userId: string, message: string, chatHistory?: { role: string; content: string }[]): Promise<ChatbotResponseDto> {
+    try {
+      // Get user's profile and preferences
+      const user = await this.userModel.findById(userId).exec();
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
 
-    // Use OpenAI to generate response
-    const response = await this.aiService.generateChatResponse(
-      message,
-      userId,
-      `chat_${userId}`,
-    );
+      // Get user's recent interactions
+      const recentInteractions = await this.interactionModel
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .exec();
 
-    return {
-      response,
-      sessionId: `chat_${userId}`,
-    };
+      // Get user's support tickets for additional context
+      const supportTickets = await this.supportTicketModel
+        .find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .exec();
+
+      // Get user's leads for additional context
+      const leads = await this.leadModel
+        .find({ user: userId })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .exec();
+
+      // Prepare user context
+      const userContext = {
+        user,
+        usersLeads: leads,
+        supportHistory: supportTickets,
+      };
+
+      // Use OpenAI to generate response with user context and chat history
+      const response = await this.aiService.generateChatResponse(
+        message,
+        userContext,
+        chatHistory
+      );
+
+      return {
+        response,
+        sessionId: `chat_${userId}`,
+      };
+    } catch (error) {
+      console.error('Error handling chatbot message:', error);
+      throw error;
+    }
   }
 
   private async getConversationHistory(userId: string) {
     // TODO: Implement conversation history retrieval
     return [];
+  }
+
+  async createLead(createCustomerLeadDto: CreateCustomerLeadDto, userId?: string): Promise<Lead> {
+    try {
+      // Get AI-powered lead score and insights
+      const { leadScore, aiInsights } = await this.aiService.generateLeadScore({
+        ...createCustomerLeadDto,
+        source: LeadSource.WEBSITE
+      });
+
+      const lead = new this.leadModel({
+        ...createCustomerLeadDto,
+        source: LeadSource.WEBSITE,
+        status: LeadStatus.NEW,
+        user: userId,
+        leadScore,
+        aiInsights
+      });
+      return lead.save();
+    } catch (error) {
+      console.error('Failed to create lead:', error);
+      throw error;
+    }
+  }
+
+  async getCustomerLeads(userId: string): Promise<Lead[]> {
+    return this.leadModel
+      .find({ user: userId })
+      .sort({ createdAt: -1 })
+      .exec();
   }
 }

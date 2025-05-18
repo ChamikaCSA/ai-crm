@@ -24,18 +24,21 @@ export enum SupportTicketCategory {
 }
 
 @Schema({ timestamps: true })
-export class SupportTicket {
+export class SupportTicket extends Document {
   @Prop({ required: true })
   userId: string;
 
   @Prop({ required: true })
-  subject: string;
+  title: string;
 
   @Prop({ required: true })
   description: string;
 
-  @Prop({ type: String, enum: SupportTicketStatus, default: SupportTicketStatus.OPEN })
+  @Prop({ required: true, enum: SupportTicketStatus, default: SupportTicketStatus.OPEN })
   status: SupportTicketStatus;
+
+  @Prop({ required: true })
+  type: string;
 
   @Prop({ type: String, enum: SupportTicketPriority, default: SupportTicketPriority.MEDIUM })
   priority: SupportTicketPriority;
@@ -46,18 +49,15 @@ export class SupportTicket {
   @Prop({ type: [{ name: String, url: String }], default: [] })
   attachments: Array<{ name: string; url: string }>;
 
-  @Prop({ type: [{
-    author: String,
-    message: String,
-    timestamp: Date,
-    attachments: [{ name: String, url: String }]
-  }], default: [] })
+  @Prop({ type: [{ type: Object }] })
   replies: Array<{
-    author: string;
-    message: string;
-    timestamp: Date;
-    attachments: Array<{ name: string; url: string }>;
+    userId: string;
+    content: string;
+    createdAt: Date;
   }>;
+
+  @Prop({ type: Object })
+  metadata: Record<string, any>;
 
   @Prop()
   resolution?: string;

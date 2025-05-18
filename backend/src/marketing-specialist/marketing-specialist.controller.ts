@@ -10,9 +10,9 @@ import { Campaign, CampaignStatus, CampaignType } from './schemas/campaign.schem
 import { CampaignAnalytics } from './schemas/campaign-analytics.schema';
 import { RequestWithUser } from '../common/interfaces/request.interface';
 
-@Controller('marketing-specialist')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.MARKETING_SPECIALIST)
+@Controller('marketing-specialist')
 export class MarketingSpecialistController {
   constructor(
     private readonly marketingSpecialistService: MarketingSpecialistService,

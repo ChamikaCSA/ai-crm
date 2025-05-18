@@ -1,16 +1,21 @@
 import { Controller, Get, Post, Body, Param, Put, UseGuards, Request, Delete, Query } from '@nestjs/common';
 import { SalesRepService } from './sales-rep.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../user/schemas/user.schema';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { UpdateLeadDto } from './dto/update-lead.dto';
 import { UpdateLeadStatusDto } from './dto/update-lead-status.dto';
 import { PerformanceQueryDto } from './dto/performance-query.dto';
 import { Lead } from './schemas/lead.schema';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { SendEmailDto } from './dto/send-email.dto';
 
 @ApiTags('Sales Representative')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.SALES_REP)
 @Controller('api/sales-rep')
-@UseGuards(JwtAuthGuard)
 export class SalesRepController {
   constructor(private readonly salesRepService: SalesRepService) {}
 
@@ -74,5 +79,15 @@ export class SalesRepController {
   @ApiResponse({ status: 200, description: 'Returns performance metrics' })
   async getPerformanceData(@Query() query: PerformanceQueryDto) {
     return this.salesRepService.getPerformanceData(query.period);
+  }
+
+  @Post('leads/:id/email')
+  @ApiOperation({ summary: 'Send email to a lead' })
+  @ApiResponse({ status: 200, description: 'Email sent successfully' })
+  async sendEmail(
+    @Param('id') id: string,
+    @Body() sendEmailDto: SendEmailDto,
+  ): Promise<void> {
+    return this.salesRepService.sendEmail(id, sendEmailDto);
   }
 }

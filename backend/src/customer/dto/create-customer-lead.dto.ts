@@ -1,8 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsEmail, IsOptional, IsEnum, IsNumber, Min, IsObject, IsBoolean, IsArray } from 'class-validator';
-import { LeadSource, LeadStatus, PreferredContactMethod } from '../schemas/lead.schema';
+import { IsString, IsEmail, IsOptional, IsEnum, IsNumber, IsObject, IsBoolean, IsArray } from 'class-validator';
+import { PreferredContactMethod } from '../../sales-rep/schemas/lead.schema';
 
-export class CreateLeadDto {
+export class CreateCustomerLeadDto {
   @ApiProperty({ description: 'First name' })
   @IsString()
   firstName: string;
@@ -11,11 +11,12 @@ export class CreateLeadDto {
   @IsString()
   lastName: string;
 
-  @ApiProperty({ description: 'Company name' })
+  @ApiProperty({ description: 'Company name', required: false })
   @IsString()
-  company: string;
+  @IsOptional()
+  company?: string;
 
-  @ApiProperty({ description: 'Job title' })
+  @ApiProperty({ description: 'Job title', required: false })
   @IsString()
   @IsOptional()
   jobTitle?: string;
@@ -24,18 +25,9 @@ export class CreateLeadDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ description: 'Contact phone number', required: false })
+  @ApiProperty({ description: 'Contact phone number' })
   @IsString()
-  @IsOptional()
-  phone?: string;
-
-  @ApiProperty({ description: 'Lead source', enum: LeadSource })
-  @IsEnum(LeadSource)
-  source: LeadSource;
-
-  @ApiProperty({ description: 'Lead status', enum: LeadStatus })
-  @IsEnum(LeadStatus)
-  status: LeadStatus;
+  phone: string;
 
   @ApiProperty({ description: 'Notes about the lead', required: false })
   @IsString()

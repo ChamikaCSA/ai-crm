@@ -288,7 +288,7 @@ export default function UsersPage() {
               onUserUpdated={fetchUsersData}
               trigger={
                 <Button>
-                  <UserPlus className="mr-2 h-4 w-4" />
+                  <Plus className="mr-2 h-4 w-4" />
                   Add User
                 </Button>
               }
