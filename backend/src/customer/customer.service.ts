@@ -2,7 +2,6 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from '../user/schemas/user.schema';
-import { Interaction, InteractionDocument } from './schemas/interaction.schema';
 import { SupportTicket, SupportTicketDocument } from './schemas/support-ticket.schema';
 import { CreateSupportTicketDto } from './dto/create-support-ticket.dto';
 import { UpdateSupportTicketDto } from './dto/update-support-ticket.dto';
@@ -11,19 +10,19 @@ import { ChatbotResponseDto } from './dto/chatbot-message.dto';
 import { TicketReplyDto } from './dto/ticket-reply.dto';
 import { aiService } from '../ai/ai.service';
 import { SupportTicketStatus } from './schemas/support-ticket.schema';
-import { InteractionType } from './schemas/interaction.schema';
 import { Lead } from '../sales-rep/schemas/lead.schema';
 import { CreateCustomerLeadDto } from './dto/create-customer-lead.dto';
 import { LeadSource, LeadStatus } from '../sales-rep/schemas/lead.schema';
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class CustomerService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
-    @InjectModel(Interaction.name) private interactionModel: Model<InteractionDocument>,
     @InjectModel(SupportTicket.name) private supportTicketModel: Model<SupportTicketDocument>,
     private aiService: aiService,
     @InjectModel(Lead.name) private leadModel: Model<Lead>,
+    private userService: UserService,
   ) {}
 
   // Recommendation related methods
@@ -36,11 +35,7 @@ export class CustomerService {
       }
 
       // Get user's recent interactions
-      const recentInteractions = await this.interactionModel
-        .find({ userId })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .exec();
+      const recentInteractions = await this.userService.getRecentInteractions(userId);
 
       // Get user's support tickets for additional context
       const supportTickets = await this.supportTicketModel
@@ -74,22 +69,6 @@ export class CustomerService {
       console.error('Error getting recommendations:', error);
       throw error;
     }
-  }
-
-  async trackInteraction(
-    userId: string,
-    type: InteractionType,
-    description: string,
-    metadata: any = {}
-  ) {
-    const interaction = new this.interactionModel({
-      userId,
-      type,
-      description,
-      metadata,
-      createdAt: new Date(),
-    });
-    return interaction.save();
   }
 
   // Support Ticket related methods
@@ -182,11 +161,7 @@ export class CustomerService {
       }
 
       // Get user's recent interactions
-      const recentInteractions = await this.interactionModel
-        .find({ userId })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .exec();
+      const recentInteractions = await this.userService.getRecentInteractions(userId);
 
       // Get user's support tickets for additional context
       const supportTickets = await this.supportTicketModel
@@ -224,11 +199,6 @@ export class CustomerService {
       console.error('Error handling chatbot message:', error);
       throw error;
     }
-  }
-
-  private async getConversationHistory(userId: string) {
-    // TODO: Implement conversation history retrieval
-    return [];
   }
 
   async createLead(createCustomerLeadDto: CreateCustomerLeadDto, userId?: string): Promise<Lead> {

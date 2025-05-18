@@ -26,7 +26,11 @@ export async function GET() {
       )
     }
 
-    const response = await api.get<MfaGenerateResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/generate`)
+    const response = await api.get<MfaGenerateResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/generate`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
     return NextResponse.json(response.data)
   } catch (error) {
     console.error('Error generating MFA secret:', error)
@@ -54,7 +58,11 @@ export async function POST(request: Request) {
 
     if (action === 'disable') {
       try {
-        const response = await api.post<MfaEnableResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/disable`, {})
+        const response = await api.post<MfaEnableResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/disable`, {}, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
         return NextResponse.json(response.data)
       } catch (apiError) {
         console.error('Error disabling MFA:', apiError)
@@ -69,7 +77,11 @@ export async function POST(request: Request) {
       )
     }
 
-    const response = await api.post<MfaEnableResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/enable`, { token: mfaToken })
+    const response = await api.post<MfaEnableResponse>(`${process.env.NEXT_PUBLIC_API_URL}/auth/mfa/enable`, { token: mfaToken }, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
     return NextResponse.json(response.data)
   } catch (error) {
     console.error('Error in MFA operation:', error)

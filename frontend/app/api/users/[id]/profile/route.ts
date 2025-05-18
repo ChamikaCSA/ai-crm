@@ -37,7 +37,7 @@ export async function PUT(
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json(data.data)
   } catch (error) {
     console.error('Profile update error:', error)
     return NextResponse.json(

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       )
     }
 
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/customer/interaction`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/interaction`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json(data.data)
   } catch (error) {
     console.error('Failed to track interaction:', error)
     return NextResponse.json(

@@ -19,7 +19,7 @@ class InteractionService {
     metadata: Record<string, any> = {}
   ) {
     try {
-      await api.post('/api/customer/interaction', {
+      await api.post('/api/users/interaction', {
         type,
         description,
         metadata,

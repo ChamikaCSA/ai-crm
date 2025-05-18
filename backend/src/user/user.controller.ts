@@ -11,6 +11,8 @@ import {
   ValidationPipe,
   Req,
   UnauthorizedException,
+  NotFoundException,
+  Request,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -21,9 +23,18 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
-import { Request } from 'express';
+import { InteractionType } from './schemas/interaction.schema';
+import { Request as ExpressRequest } from 'express';
 
-interface RequestWithUser extends Request {
+interface AuthenticatedRequest extends ExpressRequest {
+  user: {
+    sub: string;
+    email: string;
+    role: string;
+  };
+}
+
+interface RequestWithUser extends ExpressRequest {
   user: {
     sub: string;
     [key: string]: any;
@@ -51,6 +62,24 @@ export class UserController {
   @Get('account')
   async getAccountDetails(@Req() req: RequestWithUser) {
     return this.userService.getAccountDetails(req.user.sub);
+  }
+
+  @Post('interaction')
+  @UseGuards(JwtAuthGuard)
+  async trackInteraction(
+    @Req() req: RequestWithUser,
+    @Body() body: {
+      type: InteractionType;
+      description: string;
+      metadata?: Record<string, any>;
+    },
+  ) {
+    return this.userService.trackInteraction(
+      req.user.sub,
+      body.type,
+      body.description,
+      body.metadata,
+    );
   }
 
   @Get(':id')

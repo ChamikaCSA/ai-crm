@@ -160,7 +160,7 @@ export class SalesRepService {
       }),
       this.leadModel
         .find({ createdAt: { $gte: startDate } })
-        .sort({ value: -1 })
+        .sort({ leadScore: -1 })
         .limit(5)
         .exec()
     ]);

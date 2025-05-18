@@ -236,20 +236,20 @@ export default function PerformancePage() {
                 <div className="space-y-4">
                   {topLeads.map((lead) => (
                     <div
-                      key={lead.id}
+                      key={lead._id}
                       className="flex items-center justify-between space-x-4"
                     >
                       <div className="space-y-1">
                         <p className="text-sm font-medium leading-none flex items-center">
-                          {lead.name}
-                          {getLeadStatusBadge(lead.status)}
+                          {`${lead.firstName} ${lead.lastName}`}
+                          {getLeadStatusBadge(lead.status as 'hot' | 'warm' | 'cold')}
                         </p>
                         <p className="text-sm text-[var(--text-tertiary)]">
                           {lead.company}
                         </p>
                       </div>
                       <div className="text-sm font-medium">
-                        ${lead.value.toLocaleString()}
+                        Score: {lead.leadScore}
                       </div>
                     </div>
                   ))}

@@ -6,7 +6,7 @@ import { UserController } from './user.controller';
 import { PasswordService } from '../common/services/password.service';
 import { EmailService } from '../common/services/email.service';
 import { AuditLog, AuditLogSchema } from '../audit/schemas/audit.schema';
-import { Interaction, InteractionSchema } from '../customer/schemas/interaction.schema';
+import { Interaction, InteractionSchema } from './schemas/interaction.schema';
 
 @Module({
   imports: [

@@ -3,7 +3,6 @@ import { CustomerController } from './customer.controller';
 import { CustomerService } from './customer.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { User, UserSchema } from '../user/schemas/user.schema';
-import { Interaction, InteractionSchema } from './schemas/interaction.schema';
 import { SupportTicket, SupportTicketSchema } from './schemas/support-ticket.schema';
 import { Lead, LeadSchema } from '../sales-rep/schemas/lead.schema';
 import { SalesRepModule } from '../sales-rep/sales-rep.module';
@@ -11,12 +10,12 @@ import { MulterModule } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
 import { AIModule } from '../ai/ai.module';
+import { UserModule } from '../user/user.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: User.name, schema: UserSchema },
-      { name: Interaction.name, schema: InteractionSchema },
       { name: SupportTicket.name, schema: SupportTicketSchema },
       { name: Lead.name, schema: LeadSchema },
     ]),
@@ -31,6 +30,7 @@ import { AIModule } from '../ai/ai.module';
     }),
     AIModule,
     SalesRepModule,
+    UserModule,
   ],
   controllers: [CustomerController],
   providers: [CustomerService],

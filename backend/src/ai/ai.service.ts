@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
-import { Interaction } from '../customer/schemas/interaction.schema';
+import { Interaction } from '../user/schemas/interaction.schema';
 import { RecommendationType, RecommendationPriority, RecommendationDto } from '../customer/dto/recommendations.dto';
 
 @Injectable()
@@ -24,12 +24,12 @@ export class aiService {
     }
   ): Promise<RecommendationDto[]> {
     try {
-      const prompt = `Analyze the following user data and generate personalized recommendations:
+      const prompt = `You are an AI-powered assistant for our CRM system, focused on providing personalized recommendations to help users improve their experience.
 
 User Context: ${JSON.stringify(userContext)}
 
-Based on this data, provide 3-5 personalized recommendations that:
-1. Focus on improving the customer's own experience with the CRM system
+Please analyze this data and provide 3 personalized recommendations that:
+1. Focus on improving the customer's experience with the CRM system
 2. Consider their support ticket history and pain points
 3. Align with their preferences and past interactions
 4. Suggest next steps based on their usage patterns and AI insights
@@ -44,9 +44,9 @@ Format the response as a JSON array of recommendations, each with:
   "expectedOutcome": "What to expect from following this recommendation"
 }
 
-Important:
-- Write the recommendations in a friendly, encouraging tone that would be appropriate to show directly to users
-- Focus on helping the user improve their own experience with the CRM system
+Important Guidelines:
+- Write in a friendly, encouraging tone that would be appropriate to show directly to users
+- Focus on helping users improve their own experience with the CRM system
 - Focus on system usage, feature adoption, and personal productivity
 - Avoid mentioning specific user names or making the recommendations sound like internal notes
 - Focus on positive outcomes and opportunities rather than problems or issues`;
@@ -63,8 +63,8 @@ Important:
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 1000
+        max_tokens: 500,
+        temperature: 0.7
       });
 
       const recommendations = JSON.parse(response.choices[0].message.content);
@@ -148,9 +148,9 @@ Important:
     chatHistory?: { role: string; content: string }[]
   ): Promise<string> {
     try {
-      const context = `You are an AI-powered customer support assistant for our CRM system. You interact exclusively with customers to help them with their needs and queries.
+      const context = `You are an AI-powered assistant for our CRM system, focused on providing personalized support and guidance to help users improve their experience.
 
-Key Customer Support Capabilities:
+Key Support Capabilities:
 1. Account & Profile Support
    - Account management assistance
    - Profile updates and preferences
@@ -169,12 +169,12 @@ Key Customer Support Capabilities:
    - Tailored guidance based on customer history
    - Proactive suggestions for better experience
 
-The context of the user you are talking to is: ${JSON.stringify(userContext)}
+User Context: ${JSON.stringify(userContext)}
 
 Please provide helpful, accurate responses that:
 - Focus on improving the customer's experience
 - Provide clear, step-by-step guidance when needed
-- Maintain a friendly and supportive tone
+- Maintain a friendly and encouraging tone
 - Respect customer privacy and data security
 - Direct customers to appropriate resources or support channels when needed
 - Offer personalized suggestions based on their usage patterns`;
@@ -182,7 +182,7 @@ Please provide helpful, accurate responses that:
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: context
+          content: 'You are an AI assistant that provides personalized support and guidance to help users improve their experience with the CRM system. Focus on actionable suggestions and clear explanations. Write in a friendly, encouraging tone that would be appropriate for direct user interaction.'
         }
       ];
 
@@ -409,28 +409,17 @@ Please provide helpful, accurate responses that:
     try {
       const prompt = `Analyze the following lead data and provide a comprehensive scoring and insights:
 
-      Lead Information:
-      - Name: ${leadData.firstName} ${leadData.lastName}
-      - Company: ${leadData.company}
-      - Job Title: ${leadData.jobTitle}
-      - Email: ${leadData.email}
-      - Phone: ${leadData.phone}
-      - Source: ${leadData.source}
+      Lead Data: ${JSON.stringify(leadData, null, 2)}
 
-      Additional Data:
-      - Preferences: ${JSON.stringify(leadData.preferences, null, 2)}
-      - Demographics: ${JSON.stringify(leadData.demographics, null, 2)}
-      - Channel History: ${JSON.stringify(leadData.channelHistory, null, 2)}
-
-      Please provide:
-      1. Lead Score (0-100)
-      2. Engagement Score (0-100)
-      3. Conversion Probability (0-100)
-      4. Next Best Action
-      5. Risk Factors
-      6. Opportunity Areas
-
-      Format the response in a structured way that can be easily parsed.`;
+      Return ONLY a JSON object with these fields:
+      {
+        "leadScore": number (0-100),
+        "engagementScore": number (0-100),
+        "conversionProbability": number (0-100),
+        "nextBestAction": string,
+        "riskFactors": string[],
+        "opportunityAreas": string[]
+      }`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',

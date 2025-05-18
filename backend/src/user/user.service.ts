@@ -9,14 +9,14 @@ import { PasswordService } from '../common/services/password.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { EmailService } from '../common/services/email.service';
 import { AuditLog, AuditAction } from '../audit/schemas/audit.schema';
-import { Interaction } from '../customer/schemas/interaction.schema';
+import { Interaction, InteractionDocument, InteractionType } from './schemas/interaction.schema';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectModel('User') private userModel: Model<User>,
     @InjectModel('AuditLog') private auditLogModel: Model<AuditLog>,
-    @InjectModel('Interaction') private interactionModel: Model<Interaction>,
+    @InjectModel(Interaction.name) private interactionModel: Model<InteractionDocument>,
     private readonly passwordService: PasswordService,
     private readonly emailService: EmailService,
   ) {}
@@ -161,7 +161,23 @@ export class UserService {
     return accountInfo;
   }
 
-  private async getRecentInteractions(userId: string) {
+  async trackInteraction(
+    userId: string,
+    type: InteractionType,
+    description: string,
+    metadata: any = {}
+  ) {
+    const interaction = new this.interactionModel({
+      userId,
+      type,
+      description,
+      metadata,
+      createdAt: new Date(),
+    });
+    return interaction.save();
+  }
+
+  async getRecentInteractions(userId: string) {
     const interactions = await this.interactionModel
       .find({ userId })
       .sort({ createdAt: -1 })

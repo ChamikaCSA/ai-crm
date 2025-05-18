@@ -324,11 +324,35 @@ export interface PerformanceMetric {
 }
 
 export interface PerformanceLead {
-  id: string
-  name: string
+  _id: string
+  firstName: string
+  lastName: string
   company: string
-  value: number
-  status: 'hot' | 'warm' | 'cold'
+  jobTitle: string
+  email: string
+  phone: string
+  status: string
+  source: string
+  leadScore: number
+  notes: string
+  interactions: any[]
+  preferences: {
+    preferredContactMethod: string
+    preferredContactTime: string
+    interests: string[]
+    timeline: string
+    painPoints: string[]
+    decisionMaker: boolean
+  }
+  channelHistory: any[]
+  demographics: {
+    industry: string
+    companySize: string
+    location: string
+  }
+  lastContact: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface PerformanceData {
