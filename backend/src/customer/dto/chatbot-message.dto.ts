@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsArray, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsArray, IsOptional, IsObject } from 'class-validator';
 
 export class ChatMessage {
   @IsString()
@@ -28,4 +28,11 @@ export class ChatbotResponseDto {
   @IsString()
   @IsNotEmpty()
   sessionId: string;
+
+  @IsObject()
+  @IsOptional()
+  metadata?: {
+    type: string;
+    section: string;
+  };
 }

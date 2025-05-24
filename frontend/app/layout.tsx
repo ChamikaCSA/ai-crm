@@ -5,6 +5,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { APP_NAME } from "@/strings";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
+import { ChatDialog } from "@/components/(main)/dashboard/chat-dialog";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -32,6 +33,7 @@ export default function RootLayout({
               <main className="flex-1">
                 {children}
               </main>
+              <ChatDialog />
               <Toaster />
             </div>
           </AuthProvider>

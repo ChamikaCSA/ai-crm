@@ -90,18 +90,22 @@ export function Header() {
                         Settings
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard/support" className="flex items-center gap-2 cursor-pointer">
-                        <HelpCircle className="w-4 h-4" />
-                        Help & Support
-                      </Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/contact" className="flex items-center gap-2 cursor-pointer">
-                        <Mail className="w-4 h-4" />
-                        Contact Us
-                      </Link>
-                    </DropdownMenuItem>
+                    {user.role === 'customer' && (
+                      <>
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard/support" className="flex items-center gap-2 cursor-pointer">
+                            <HelpCircle className="w-4 h-4" />
+                            Help & Support
+                          </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                          <Link href="/contact" className="flex items-center gap-2 cursor-pointer">
+                            <Mail className="w-4 h-4" />
+                            Contact Us
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
                     <DropdownMenuSeparator />
                     <div className="flex items-center justify-between px-2 py-2 hover:bg-[var(--accent)] transition-colors rounded-md cursor-pointer">
                       <div className="flex items-center gap-2.5">

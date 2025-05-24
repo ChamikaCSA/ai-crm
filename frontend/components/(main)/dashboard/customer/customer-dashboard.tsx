@@ -491,55 +491,42 @@ export function CustomerDashboard() {
 
       {/* Recommendations */}
       {!isRecommendationsLoading && (
-        <motion.div variants={itemVariants}>
-          <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80 border-none shadow-lg hover:shadow-xl transition-all duration-300">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-xl">
-                <Lightbulb className="w-6 h-6 text-[var(--primary)]" />
-                Personalized Recommendations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recommendations.length === 0 ? (
-                <div className="text-center py-8">
-                  <Lightbulb className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
-                  <p className="text-[var(--text-tertiary)]">
-                    No recommendations available at this time
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <AnimatePresence>
-                    {recommendations.slice(0, 3).map((rec, index) => (
-                      <motion.div
-                        key={`${rec.type}-${index}`}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.3, delay: index * 0.1 }}
-                        onClick={() => toggleDescription(`${rec.type}-${index}`)}
-                        className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group cursor-pointer"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
-                            <Lightbulb className="w-5 h-5 text-[var(--primary)]" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="font-medium group-hover:text-[var(--primary)] transition-colors">{rec.title}</h3>
-                            <div>
-                              <p className={`text-sm text-[var(--text-secondary)] ${!expandedDescriptions[`${rec.type}-${index}`] ? 'line-clamp-1' : ''}`}>
-                                {rec.description}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    ))}
-                  </AnimatePresence>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+        <motion.div variants={itemVariants} className="space-y-4">
+          {recommendations.length === 0 ? (
+            <div className="text-center py-8">
+              <Lightbulb className="w-12 h-12 text-[var(--text-tertiary)] mx-auto mb-4" />
+              <p className="text-[var(--text-tertiary)]">
+                No recommendations available at this time
+              </p>
+            </div>
+          ) : (
+            <AnimatePresence>
+              {recommendations.slice(0, 3).map((rec, index) => (
+                <motion.div
+                  key={`${rec.type}-${index}`}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  className="flex items-center justify-between p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors bg-[var(--card)]/50 hover:bg-[var(--card)]/80 group"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[var(--primary)]/10 flex items-center justify-center">
+                      <Lightbulb className="w-5 h-5 text-[var(--primary)]" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium group-hover:text-[var(--primary)] transition-colors">{rec.title}</h3>
+                      <div>
+                        <p className="text-sm text-[var(--text-secondary)]">
+                          {rec.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          )}
         </motion.div>
       )}
     </motion.div>

@@ -13,6 +13,10 @@ export interface ChatbotMessage {
 export interface ChatbotResponse {
   response: string
   sessionId: string
+  metadata?: {
+    type: string
+    section: string
+  }
 }
 
 export interface Recommendation {

@@ -197,7 +197,7 @@ export default function LandingPage() {
   return (
     <div className="flex-1">
       {/* Hero Section */}
-      <section className="relative min-h-screen flex items-center overflow-hidden">
+      <section className="relative min-h-screen flex items-center overflow-hidden -mt-16">
         <div className="absolute inset-0 bg-gradient-to-br from-[var(--primary)]/20 via-transparent to-[var(--accent)]/20" />
         <div className="absolute inset-0 bg-grid-pattern opacity-20" />
         <div className="container mx-auto px-4 relative z-10">

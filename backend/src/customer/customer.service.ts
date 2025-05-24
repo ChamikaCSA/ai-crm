@@ -185,15 +185,16 @@ export class CustomerService {
       };
 
       // Use OpenAI to generate response with user context and chat history
-      const response = await this.aiService.generateChatResponse(
+      const aiResponse = await this.aiService.generateChatResponse(
         message,
         userContext,
         chatHistory
       );
 
       return {
-        response,
+        response: aiResponse.response,
         sessionId: `chat_${userId}`,
+        metadata: aiResponse.metadata
       };
     } catch (error) {
       console.error('Error handling chatbot message:', error);

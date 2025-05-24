@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
 import { Interaction } from '../user/schemas/interaction.schema';
-import { RecommendationType, RecommendationPriority, RecommendationDto } from '../customer/dto/recommendations.dto';
+import {
+  RecommendationType,
+  RecommendationPriority,
+  RecommendationDto,
+} from '../customer/dto/recommendations.dto';
 
 @Injectable()
 export class aiService {
@@ -21,7 +25,7 @@ export class aiService {
       user: any;
       usersLeads: any[];
       supportHistory: any[];
-    }
+    },
   ): Promise<RecommendationDto[]> {
     try {
       const prompt = `You are an AI-powered assistant for our CRM system, focused on providing personalized recommendations to help users improve their experience.
@@ -56,15 +60,16 @@ Important Guidelines:
         messages: [
           {
             role: 'system',
-            content: 'You are an AI assistant that generates personalized recommendations to help users improve their experience with the CRM system. Focus on actionable suggestions that help users get more value from the system. Write in a friendly, encouraging tone that would be appropriate to show directly to users.'
+            content:
+              'You are an AI assistant that generates personalized recommendations to help users improve their experience with the CRM system. Focus on actionable suggestions that help users get more value from the system. Write in a friendly, encouraging tone that would be appropriate to show directly to users.',
           },
           {
             role: 'user',
-            content: prompt
-          }
+            content: prompt,
+          },
         ],
         max_tokens: 500,
-        temperature: 0.7
+        temperature: 0.7,
       });
 
       const recommendations = JSON.parse(response.choices[0].message.content);
@@ -82,17 +87,17 @@ Important Guidelines:
       timeOfDay: new Map<string, number>(),
       sessionDuration: [] as number[],
       featureUsage: new Map<string, number>(),
-      supportNeeds: new Map<string, number>()
+      supportNeeds: new Map<string, number>(),
     };
 
-    interactions.forEach(interaction => {
+    interactions.forEach((interaction) => {
       // Track feature usage
       if (interaction.type === 'FEATURE_USAGE') {
         const feature = interaction.metadata?.featureName;
         if (feature) {
           patterns.frequentFeatures.set(
             feature,
-            (patterns.frequentFeatures.get(feature) || 0) + 1
+            (patterns.frequentFeatures.get(feature) || 0) + 1,
           );
         }
       }
@@ -103,7 +108,7 @@ Important Guidelines:
         if (issue) {
           patterns.supportNeeds.set(
             issue,
-            (patterns.supportNeeds.get(issue) || 0) + 1
+            (patterns.supportNeeds.get(issue) || 0) + 1,
           );
         }
       }
@@ -113,7 +118,7 @@ Important Guidelines:
       const timeSlot = `${hour}:00`;
       patterns.timeOfDay.set(
         timeSlot,
-        (patterns.timeOfDay.get(timeSlot) || 0) + 1
+        (patterns.timeOfDay.get(timeSlot) || 0) + 1,
       );
 
       // Track session duration if available
@@ -132,9 +137,11 @@ Important Guidelines:
       peakUsageHours: Array.from(patterns.timeOfDay.entries())
         .sort((a, b) => b[1] - a[1])
         .slice(0, 3),
-      averageSessionDuration: patterns.sessionDuration.length > 0
-        ? patterns.sessionDuration.reduce((a, b) => a + b, 0) / patterns.sessionDuration.length
-        : 0
+      averageSessionDuration:
+        patterns.sessionDuration.length > 0
+          ? patterns.sessionDuration.reduce((a, b) => a + b, 0) /
+            patterns.sessionDuration.length
+          : 0,
     };
   }
 
@@ -145,71 +152,172 @@ Important Guidelines:
       usersLeads: any[];
       supportHistory: any[];
     },
-    chatHistory?: { role: string; content: string }[]
-  ): Promise<string> {
+    chatHistory?: { role: string; content: string }[],
+  ): Promise<{ response: string; metadata?: { type: string; section: string } }> {
     try {
-      const context = `You are an AI-powered assistant for our CRM system, focused on providing personalized support and guidance to help users improve their experience.
+      const systemPrompt = `You are an AI-powered customer support assistant for our CRM system. Your role is to:
+1. Provide immediate, accurate responses to customer queries
+2. Offer personalized assistance based on the user's profile and history
+3. Guide users to relevant support resources when needed
+4. Maintain a friendly, professional tone
+5. Escalate complex issues when necessary
 
-Key Support Capabilities:
-1. Account & Profile Support
-   - Account management assistance
-   - Profile updates and preferences
-   - Access to account details
-   - Security and privacy help
+User Context:
+- User Profile: ${JSON.stringify(userContext.user)}
+- Support History: ${JSON.stringify(userContext.supportHistory)}
+- User's Leads: ${JSON.stringify(userContext.usersLeads)}
 
-2. Product & Service Support
-   - Feature explanations and guidance
-   - Usage tips and best practices
-   - Troubleshooting assistance
-   - System navigation help
+Available Customer Features:
+1. Dashboard
+   - Account summary with profile information
+   - Recent activity tracking
+   - Support ticket management
+   - Personalized recommendations
+   - Quick access to account settings
 
-3. Personalized Assistance
-   - Real-time support for immediate queries
-   - Personalized recommendations based on usage
-   - Tailored guidance based on customer history
-   - Proactive suggestions for better experience
+2. Account Management
+   - Profile information updates
+   - Email verification status
+   - Account status monitoring
+   - Last login tracking
+   - Activity history
 
-User Context: ${JSON.stringify(userContext)}
+3. Support System
+   - Create and manage support tickets
+   - Track ticket status (Open, In Progress, Closed)
+   - View ticket history
+   - Real-time chat support
+   - Access to help center resources
 
-Please provide helpful, accurate responses that:
-- Focus on improving the customer's experience
-- Provide clear, step-by-step guidance when needed
-- Maintain a friendly and encouraging tone
-- Respect customer privacy and data security
-- Direct customers to appropriate resources or support channels when needed
-- Offer personalized suggestions based on their usage patterns`;
+4. Activity Tracking
+   - Chat interactions
+   - Email communications
+   - Support ticket activities
+   - System interactions
+   - Login history
+   - Settings updates
+   - Profile updates
+   - Document views
+   - Feature usage
+
+5. Recommendations
+   - Personalized suggestions based on usage
+   - Feature adoption recommendations
+   - Productivity improvements
+   - System optimization tips
+
+Important Guidelines:
+- Always maintain a helpful and empathetic tone
+- Provide specific, actionable solutions when possible
+- Reference the user's history and preferences when relevant
+- Suggest relevant features or resources that could help
+- If a query requires human intervention, clearly state this and explain why
+- Never share sensitive information or make promises about specific outcomes
+- Guide users to appropriate sections of the dashboard based on their needs
+- Explain features in the context of the user's current activity and history
+- Provide step-by-step instructions when explaining complex features
+- Always verify if the user has access to a feature before suggesting it`;
 
       const messages: ChatCompletionMessageParam[] = [
         {
           role: 'system',
-          content: 'You are an AI assistant that provides personalized support and guidance to help users improve their experience with the CRM system. Focus on actionable suggestions and clear explanations. Write in a friendly, encouraging tone that would be appropriate for direct user interaction.'
-        }
+          content: systemPrompt,
+        },
       ];
 
-      // Add chat history if available
       if (chatHistory && chatHistory.length > 0) {
-        messages.push(...chatHistory.map(msg => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content
-        })));
+        messages.push(
+          ...chatHistory.map((msg) => ({
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+          })),
+        );
       }
 
-      // Add the current message
       messages.push({
         role: 'user',
-        content: message
+        content: message,
       });
 
       const completion = await this.openai.chat.completions.create({
         messages,
         model: 'gpt-4',
+        max_tokens: 500,
+        temperature: 0.7,
       });
 
-      return completion.choices[0].message.content || 'I apologize, but I could not generate a response.';
+      const response = completion.choices[0].message.content;
+      const processed = this.postProcessChatResponse(response, userContext);
+
+      return {
+        response: processed.content,
+        metadata: processed.metadata
+      };
     } catch (error) {
       console.error('OpenAI API Error:', error);
       throw error;
     }
+  }
+
+  private postProcessChatResponse(response: string, userContext: any): { content: string; metadata?: { type: string; section: string } } {
+    let processedResponse = response;
+    let metadata: { type: string; section: string } | undefined;
+
+    // Add personalized greeting if this is the first message
+    if (!userContext.supportHistory?.length) {
+      processedResponse = `Hello ${userContext.user?.name || 'there'}! ${processedResponse}`;
+    }
+
+    const lowerResponse = processedResponse.toLowerCase();
+
+    // Overview/Dashboard suggestions
+    if (lowerResponse.includes('dashboard') ||
+        lowerResponse.includes('overview') ||
+        lowerResponse.includes('main page') ||
+        lowerResponse.includes('recent activity')) {
+      metadata = { type: 'overview', section: '' };
+    }
+
+    // Support suggestions
+    if (lowerResponse.includes('support') ||
+        lowerResponse.includes('ticket') ||
+        lowerResponse.includes('help') ||
+        lowerResponse.includes('issue')) {
+      metadata = { type: 'support', section: 'support' };
+    }
+
+    // Account suggestions
+    if (lowerResponse.includes('account') ||
+        lowerResponse.includes('profile') ||
+        lowerResponse.includes('user') ||
+        lowerResponse.includes('personal information')) {
+      metadata = { type: 'account', section: 'account' };
+    }
+
+    // Settings suggestions
+    if (lowerResponse.includes('settings') ||
+        lowerResponse.includes('preferences') ||
+        lowerResponse.includes('configuration') ||
+        lowerResponse.includes('notifications')) {
+      metadata = { type: 'settings', section: 'settings' };
+    }
+
+    // Add escalation note for complex issues
+    if (lowerResponse.includes('complex') ||
+        lowerResponse.includes('technical') ||
+        lowerResponse.includes('error') ||
+        lowerResponse.includes('problem')) {
+      processedResponse += '\n\nIf you need further assistance, our support team is available 24/7.';
+      // If no other metadata is set, suggest support section for complex issues
+      if (!metadata) {
+        metadata = { type: 'support', section: 'support' };
+      }
+    }
+
+    return {
+      content: processedResponse,
+      metadata
+    };
   }
 
   // Marketing Specialist AI methods
@@ -306,14 +414,14 @@ Please provide helpful, accurate responses that:
     const lines = insights.split('\n');
     return {
       keyCharacteristics: lines
-        .filter(line => line.includes('characteristic'))
-        .map(line => line.replace(/^[0-9]+\.\s*/, '')),
+        .filter((line) => line.includes('characteristic'))
+        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
       recommendations: lines
-        .filter(line => line.includes('recommendation'))
-        .map(line => line.replace(/^[0-9]+\.\s*/, '')),
+        .filter((line) => line.includes('recommendation'))
+        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
       predictedBehavior: lines
-        .filter(line => line.includes('behavior'))
-        .map(line => line.replace(/^[0-9]+\.\s*/, '')),
+        .filter((line) => line.includes('behavior'))
+        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
     };
   }
 
@@ -321,17 +429,17 @@ Please provide helpful, accurate responses that:
     const lines = recommendations.split('\n');
     return {
       optimizationSuggestions: lines
-        .filter(line => line.includes('optimization'))
-        .map(line => line.replace(/^[0-9]+\.\s*/, '')),
+        .filter((line) => line.includes('optimization'))
+        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
       audienceSegments: lines
-        .filter(line => line.includes('audience'))
-        .map(line => line.replace(/^[0-9]+\.\s*/, '')),
+        .filter((line) => line.includes('audience'))
+        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
       contentImprovements: lines
-        .filter(line => line.includes('content'))
-        .map(line => line.replace(/^[0-9]+\.\s*/, '')),
+        .filter((line) => line.includes('content'))
+        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
       budgetAllocation: lines
-        .filter(line => line.includes('budget'))
-        .map(line => {
+        .filter((line) => line.includes('budget'))
+        .map((line) => {
           const [channel, percentage] = line.split(':');
           return {
             channel: channel.replace(/^[0-9]+\.\s*/, ''),
@@ -339,8 +447,8 @@ Please provide helpful, accurate responses that:
           };
         }),
       predictedPerformance: lines
-        .filter(line => line.includes('prediction'))
-        .map(line => {
+        .filter((line) => line.includes('prediction'))
+        .map((line) => {
           const [metric, value] = line.split(':');
           return {
             metric: metric.replace(/^[0-9]+\.\s*/, ''),
@@ -352,41 +460,47 @@ Please provide helpful, accurate responses that:
 
   private parseSentimentAnalysis(analysis: string) {
     const lines = analysis.split('\n');
-    const sentiment = lines
-      .find(line => line.toLowerCase().includes('sentiment'))
-      ?.split(':')[1]
-      ?.trim()
-      ?.toLowerCase() || 'neutral';
+    const sentiment =
+      lines
+        .find((line) => line.toLowerCase().includes('sentiment'))
+        ?.split(':')[1]
+        ?.trim()
+        ?.toLowerCase() || 'neutral';
 
     const score = parseFloat(
       lines
-        .find(line => line.toLowerCase().includes('score'))
+        .find((line) => line.toLowerCase().includes('score'))
         ?.split(':')[1]
-        ?.trim() || '0.5'
+        ?.trim() || '0.5',
     );
 
     const topics = lines
-      .filter(line => line.toLowerCase().includes('topic') || line.toLowerCase().includes('theme'))
-      .map(line => line.replace(/^[0-9]+\.\s*/, '').trim());
+      .filter(
+        (line) =>
+          line.toLowerCase().includes('topic') ||
+          line.toLowerCase().includes('theme'),
+      )
+      .map((line) => line.replace(/^[0-9]+\.\s*/, '').trim());
 
     const emotions = lines
-      .filter(line => line.toLowerCase().includes('emotion'))
-      .map(line => {
+      .filter((line) => line.toLowerCase().includes('emotion'))
+      .map((line) => {
         const [emotion, score] = line.split(':');
         return {
           emotion: emotion.replace(/^[0-9]+\.\s*/, '').trim(),
-          score: parseFloat(score?.trim() || '0') / 100
+          score: parseFloat(score?.trim() || '0') / 100,
         };
       });
 
     const actionItems = lines
-      .filter(line => line.toLowerCase().includes('action'))
-      .map(line => line.replace(/^[0-9]+\.\s*/, '').trim());
+      .filter((line) => line.toLowerCase().includes('action'))
+      .map((line) => line.replace(/^[0-9]+\.\s*/, '').trim());
 
-    const trendAnalysis = lines
-      .find(line => line.toLowerCase().includes('trend'))
-      ?.split(':')[1]
-      ?.trim() || 'No trend analysis available';
+    const trendAnalysis =
+      lines
+        .find((line) => line.toLowerCase().includes('trend'))
+        ?.split(':')[1]
+        ?.trim() || 'No trend analysis available';
 
     return {
       sentiment,
@@ -394,14 +508,14 @@ Please provide helpful, accurate responses that:
       keywords: topics,
       metadata: {
         language: 'en',
-        confidence: score > 0.7 ? 0.9 : score > 0.4 ? 0.7 : 0.5
+        confidence: score > 0.7 ? 0.9 : score > 0.4 ? 0.7 : 0.5,
       },
       aiInsights: {
         topics,
         emotionBreakdown: emotions,
         actionItems,
-        trendAnalysis
-      }
+        trendAnalysis,
+      },
     };
   }
 
@@ -426,12 +540,13 @@ Please provide helpful, accurate responses that:
         messages: [
           {
             role: 'system',
-            content: 'You are an AI assistant specialized in lead scoring and analysis. Your analysis should be based on the lead\'s profile, behavior, and potential value. Always return valid JSON.'
+            content:
+              "You are an AI assistant specialized in lead scoring and analysis. Your analysis should be based on the lead's profile, behavior, and potential value. Always return valid JSON.",
           },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.7,
-        max_tokens: 500
+        max_tokens: 500,
       });
 
       const content = response.choices[0].message.content || '{}';
@@ -445,8 +560,8 @@ Please provide helpful, accurate responses that:
           nextBestAction: analysis.nextBestAction || 'Schedule initial contact',
           riskFactors: analysis.riskFactors || [],
           opportunityAreas: analysis.opportunityAreas || [],
-          lastScoredAt: new Date()
-        }
+          lastScoredAt: new Date(),
+        },
       };
     } catch (error) {
       console.error('Error generating lead score:', error);
@@ -459,8 +574,8 @@ Please provide helpful, accurate responses that:
           nextBestAction: 'Schedule initial contact',
           riskFactors: [],
           opportunityAreas: [],
-          lastScoredAt: new Date()
-        }
+          lastScoredAt: new Date(),
+        },
       };
     }
   }

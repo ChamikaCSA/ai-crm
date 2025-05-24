@@ -22,7 +22,6 @@ import {
 
 const customerNavigation = [
   { name: "Overview", href: "/dashboard", icon: Home },
-  { name: 'Chat Support', href: '/dashboard/chat', icon: MessageSquare },
   { name: 'Support', href: '/dashboard/support', icon: Headphones },
   { name: "Account", href: "/dashboard/account", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
