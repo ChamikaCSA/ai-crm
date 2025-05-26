@@ -95,14 +95,12 @@ export default function SentimentPage() {
         throw new Error('Failed to analyze sentiment')
       }
 
-      const data = await response.json()
-      const newAnalysis = {
-        ...data.data,
-        _id: data.data.id || data.data._id // Handle both id and _id
-      }
-      setAnalyses([newAnalysis, ...analyses])
+      // Clear the form
       setNewContent('')
       setSelectedSource('')
+
+      // Refetch all sentiments to get the latest data
+      await fetchAnalyses()
     } catch (error) {
       setError('Failed to analyze sentiment')
       console.error('Error analyzing sentiment:', error)
@@ -261,10 +259,10 @@ export default function SentimentPage() {
                           <div className="w-full h-2 bg-[var(--accent)] rounded-full">
                             <div
                               className="h-full bg-[var(--success)] rounded-full"
-                              style={{ width: `${analysis.metadata.confidence * 100}%` }}
+                              style={{ width: `${(analysis.metadata?.confidence || 0) * 100}%` }}
                             />
                           </div>
-                          <span className="text-sm font-medium">{Math.round(analysis.metadata.confidence * 100)}%</span>
+                          <span className="text-sm font-medium">{Math.round((analysis.metadata?.confidence || 0) * 100)}%</span>
                         </div>
                       </div>
                     </div>
@@ -289,7 +287,7 @@ export default function SentimentPage() {
                         Main Emotions
                       </h4>
                       <div className="flex flex-wrap gap-2">
-                        {analysis.aiInsights.mainEmotions.map((emotion, index) => (
+                        {(analysis.aiInsights?.mainEmotions || []).map((emotion, index) => (
                           <Badge key={index} variant="outline" className="bg-[var(--accent)]">
                             {emotion}
                           </Badge>
@@ -304,7 +302,7 @@ export default function SentimentPage() {
                       </h4>
                       <div className="bg-[var(--card)] p-3 rounded-lg">
                         <ul className="list-disc list-inside text-[var(--text-secondary)] space-y-1">
-                          {analysis.aiInsights.suggestedActions.map((action, index) => (
+                          {(analysis.aiInsights?.suggestedActions || []).map((action, index) => (
                             <li key={index} className="flex items-start gap-2">
                               <span className="text-[var(--primary)]">•</span>
                               <span>{action}</span>
@@ -320,14 +318,14 @@ export default function SentimentPage() {
                         Trend Analysis
                       </h4>
                       <div className="bg-[var(--card)] p-3 rounded-lg">
-                        <p className="text-[var(--text-secondary)]">{analysis.aiInsights.trendAnalysis}</p>
+                        <p className="text-[var(--text-secondary)]">{analysis.aiInsights?.trendAnalysis || 'No trend analysis available'}</p>
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center pt-4 border-t">
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">{analysis.source}</Badge>
-                        <Badge variant="outline">{analysis.metadata.language}</Badge>
+                        <Badge variant="outline">{analysis.metadata?.language || 'Unknown'}</Badge>
                       </div>
                       <div className="flex gap-2">
                         <Button
@@ -393,10 +391,10 @@ export default function SentimentPage() {
                       <div className="w-full h-2 bg-[var(--accent)] rounded-full">
                         <div
                           className="h-full bg-[var(--success)] rounded-full"
-                          style={{ width: `${selectedAnalysis.metadata.confidence * 100}%` }}
+                          style={{ width: `${(selectedAnalysis.metadata?.confidence || 0) * 100}%` }}
                         />
                       </div>
-                      <span className="text-sm font-medium">{Math.round(selectedAnalysis.metadata.confidence * 100)}%</span>
+                      <span className="text-sm font-medium">{Math.round((selectedAnalysis.metadata?.confidence || 0) * 100)}%</span>
                     </div>
                   </div>
                 </div>
@@ -413,7 +411,7 @@ export default function SentimentPage() {
                 <div>
                   <h4 className="font-semibold mb-2">Main Emotions</h4>
                   <div className="flex flex-wrap gap-2">
-                    {selectedAnalysis.aiInsights.mainEmotions.map((emotion, index) => (
+                    {(selectedAnalysis.aiInsights?.mainEmotions || []).map((emotion, index) => (
                       <Badge key={index} variant="outline" className="bg-[var(--accent)]">
                         {emotion}
                       </Badge>
@@ -424,7 +422,7 @@ export default function SentimentPage() {
                   <h4 className="font-semibold mb-2">Suggested Actions</h4>
                   <div className="bg-[var(--card)] p-3 rounded-lg">
                     <ul className="list-disc list-inside text-[var(--text-secondary)] space-y-1">
-                      {selectedAnalysis.aiInsights.suggestedActions.map((action, index) => (
+                      {(selectedAnalysis.aiInsights?.suggestedActions || []).map((action, index) => (
                         <li key={index} className="flex items-start gap-2">
                           <span className="text-[var(--primary)]">•</span>
                           <span>{action}</span>
@@ -436,7 +434,7 @@ export default function SentimentPage() {
                 <div>
                   <h4 className="font-semibold mb-2">Trend Analysis</h4>
                   <div className="bg-[var(--card)] p-3 rounded-lg">
-                    <p className="text-[var(--text-secondary)]">{selectedAnalysis.aiInsights.trendAnalysis}</p>
+                    <p className="text-[var(--text-secondary)]">{selectedAnalysis.aiInsights?.trendAnalysis || 'No trend analysis available'}</p>
                   </div>
                 </div>
                 <div>

@@ -19,13 +19,13 @@ interface DashboardData {
     name: string
     value: number
     trend: number
-    status: 'good' | 'warning' | 'critical'
+    status: 'excellent' | 'good' | 'warning' | 'critical'
   }>
   securityMetrics: Array<{
     name: string
     value: number
     trend: number
-    status: 'good' | 'warning' | 'critical'
+    status: 'excellent' | 'good' | 'warning' | 'critical'
   }>
   recentLogs: Array<{
     _id: string
@@ -88,6 +88,8 @@ export function AdminDashboard() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'excellent':
+        return 'bg-emerald-100 text-emerald-800'
       case 'good':
         return 'bg-green-100 text-green-800'
       case 'warning':
@@ -151,7 +153,7 @@ export function AdminDashboard() {
       </div>
 
       {/* User and Security Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
@@ -165,34 +167,10 @@ export function AdminDashboard() {
                 <div key={metric.name} className="flex items-center justify-between">
                   <span className="text-[var(--text-secondary)]">{metric.name}</span>
                   <div className="flex items-center gap-4">
-                    <span className="font-medium">{metric.value}</span>
-                    <span className={`text-sm ${metric.trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    <span className="font-medium min-w-[60px] text-right">{metric.value}</span>
+                    <span className={`text-sm min-w-[70px] text-right ${metric.trend > 0 ? 'text-green-500' : 'text-red-500'}`}>
                       {metric.trend > 0 ? '+' : ''}{metric.trend}%
                     </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
-              <Shield className="w-6 h-6 text-[var(--primary)]" />
-              Security Overview
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {(data.securityMetrics || []).map((metric) => (
-                <div key={metric.name} className="flex items-center justify-between">
-                  <span className="text-[var(--text-secondary)]">{metric.name}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="font-medium">{metric.value}%</span>
-                    <Badge className={getStatusColor(metric.status)}>
-                      {metric.status}
-                    </Badge>
                   </div>
                 </div>
               ))}

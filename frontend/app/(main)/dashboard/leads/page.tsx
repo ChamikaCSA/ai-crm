@@ -42,6 +42,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useRouter } from 'next/navigation'
 import { Progress } from "@/components/ui/progress"
+import { getStatusColor, formatStatus } from '@/lib/lead-utils'
 
 interface Lead {
   _id: string
@@ -84,19 +85,6 @@ export default function LeadsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const getStatusColor = (status: LeadStatus) => {
-    const colors = {
-      [LeadStatus.NEW]: 'bg-blue-100 text-blue-800',
-      [LeadStatus.CONTACTED]: 'bg-yellow-100 text-yellow-800',
-      [LeadStatus.QUALIFIED]: 'bg-green-100 text-green-800',
-      [LeadStatus.PROPOSAL]: 'bg-purple-100 text-purple-800',
-      [LeadStatus.NEGOTIATION]: 'bg-orange-100 text-orange-800',
-      [LeadStatus.CLOSED_WON]: 'bg-green-100 text-green-800',
-      [LeadStatus.CLOSED_LOST]: 'bg-red-100 text-red-800',
-    }
-    return colors[status]
   }
 
   const filteredLeads = leads.filter(lead => {
@@ -274,7 +262,7 @@ export default function LeadsPage() {
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Badge className={`${getStatusColor(lead.status)} cursor-pointer`}>
-                            {lead.status.charAt(0).toUpperCase() + lead.status.slice(1).replace('_', ' ')}
+                            {formatStatus(lead.status)}
                           </Badge>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start">
@@ -283,7 +271,7 @@ export default function LeadsPage() {
                               key={status}
                               onClick={() => handleStatusChange(lead._id, status)}
                             >
-                              {status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ')}
+                              {formatStatus(status)}
                             </DropdownMenuItem>
                           ))}
                         </DropdownMenuContent>

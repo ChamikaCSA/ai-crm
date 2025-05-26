@@ -27,7 +27,7 @@ export async function GET() {
     }
 
     const data = await response.json()
-    return NextResponse.json(data)
+    return NextResponse.json(data.data)
   } catch (error) {
     console.error('Error fetching sales rep stats:', error)
     return NextResponse.json(

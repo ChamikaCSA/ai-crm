@@ -54,11 +54,7 @@ export async function GET(request: NextRequest) {
     }
 
     const data = await response.json()
-    return NextResponse.json({
-      success: true,
-      data: data.data.data || [],
-      ...(data.error && { error: data.error })
-    })
+    return NextResponse.json(data.data.data)
   } catch (error) {
     console.error('Error fetching forecasting data:', error)
     return NextResponse.json(

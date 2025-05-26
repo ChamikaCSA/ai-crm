@@ -229,6 +229,9 @@ export interface SalesRepStats {
   lastWeekLeads: number;
   conversionRate: number;
   lastMonthConversionRate: number;
+  leadStatusBreakdown: {
+    [key in LeadStatus]?: number;
+  };
 }
 
 export interface Lead {

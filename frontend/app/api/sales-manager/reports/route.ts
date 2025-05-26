@@ -77,7 +77,7 @@ export async function POST(request: Request) {
     }
 
     const responseData = await response.json()
-    return NextResponse.json(responseData)
+    return NextResponse.json(responseData.data)
   } catch (error) {
     console.error('Failed to generate report:', error)
     return NextResponse.json(

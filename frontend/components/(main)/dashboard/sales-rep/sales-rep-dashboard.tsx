@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, BarChart3, ArrowUp, ArrowDown } from 'lucide-react'
+import { Users, BarChart3, PieChart } from 'lucide-react'
 import { api } from '@/lib/api-client'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { SalesRepStats, Lead } from '@/lib/api-types'
+import { SalesRepStats, Lead, LeadStatus } from '@/lib/api-types'
+import { Progress } from '@/components/ui/progress'
+import { getStatusColor, formatStatus } from '@/lib/lead-utils'
 
 export function SalesRepDashboard() {
   const [stats, setStats] = useState<SalesRepStats | null>(null)
@@ -35,6 +37,11 @@ export function SalesRepDashboard() {
 
   if (isLoading) {
     return null
+  }
+
+  const getTotalLeads = () => {
+    if (!stats?.leadStatusBreakdown) return 0
+    return Object.values(stats.leadStatusBreakdown).reduce((sum, count) => sum + (count || 0), 0)
   }
 
   return (
@@ -77,6 +84,56 @@ export function SalesRepDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <PieChart className="w-6 h-6 text-[var(--primary)]" />
+              Lead Status Breakdown
+            </CardTitle>
+            <div className="text-sm text-[var(--text-tertiary)]">
+              Total: {getTotalLeads()} leads
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {stats?.leadStatusBreakdown && Object.entries(stats.leadStatusBreakdown).map(([status, count]) => {
+              const percentage = count ? Math.round((count / getTotalLeads()) * 100) : 0;
+              return (
+                <div
+                  key={status}
+                  className="group flex items-center gap-4 p-2 rounded-lg hover:bg-[var(--accent)]/5 transition-colors"
+                >
+                  <div className="w-32">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}`}>
+                      {formatStatus(status)}
+                    </span>
+                  </div>
+                  <div className="flex-1 flex items-center gap-3">
+                    <div className="flex-1 relative">
+                      <Progress
+                        value={percentage}
+                        className="h-2 group-hover:h-2.5 transition-all duration-200"
+                      />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 min-w-[100px] text-sm">
+                      <span className="font-medium">{count}</span>
+                      <span className="text-[var(--text-tertiary)]">({percentage}%)</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
       <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-xl">
@@ -104,23 +161,8 @@ export function SalesRepDashboard() {
                       <p className="font-medium text-[var(--text-primary)]">
                         {`${lead.firstName} ${lead.lastName}`}
                       </p>
-                      <span
-                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          lead.status === 'qualified' || lead.status === 'proposal'
-                            ? 'bg-[var(--success)]/10 text-[var(--success)]'
-                            : lead.status === 'contacted'
-                            ? 'bg-[var(--warning)]/10 text-[var(--warning)]'
-                            : 'bg-[var(--text-tertiary)]/10 text-[var(--text-tertiary)]'
-                        }`}
-                      >
-                        {lead.status === 'qualified' || lead.status === 'proposal' ? (
-                          <ArrowUp className="w-3 h-3 mr-1" />
-                        ) : lead.status === 'contacted' ? (
-                          <ArrowUp className="w-3 h-3 mr-1" />
-                        ) : (
-                          <ArrowDown className="w-3 h-3 mr-1" />
-                        )}
-                        {lead.status}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(lead.status)}`}>
+                        {formatStatus(lead.status)}
                       </span>
                     </div>
                     <div className="flex items-center gap-4 mt-1">

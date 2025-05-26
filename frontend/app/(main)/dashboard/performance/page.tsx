@@ -24,6 +24,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { api } from '@/lib/api-client'
 import { PerformanceMetric, PerformanceLead, PerformanceData } from '@/lib/api-types'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { getStatusColor, formatStatus } from '@/lib/lead-utils'
 
 interface Metric extends PerformanceMetric {
   icon: React.ReactNode
@@ -31,6 +34,7 @@ interface Metric extends PerformanceMetric {
 }
 
 export default function PerformancePage() {
+  const router = useRouter()
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(false)
   const [metrics, setMetrics] = useState<Metric[]>([])
@@ -90,12 +94,17 @@ export default function PerformancePage() {
   }
 
   const getLeadStatusBadge = (status: PerformanceLead['status']) => {
-    const variants: Record<PerformanceLead['status'], 'success' | 'destructive' | 'warning'> = {
-      hot: 'success',
-      warm: 'warning',
-      cold: 'destructive'
-    }
-    return <Badge variant={variants[status]} className="ml-2">{status}</Badge>
+    return (
+      <Badge
+        className={`${getStatusColor(status)} ml-2`}
+      >
+        {formatStatus(status)}
+      </Badge>
+    )
+  }
+
+  const handleLeadClick = (leadId: string) => {
+    router.push(`/dashboard/leads/${leadId}`)
   }
 
   if (isLoading) {
@@ -227,29 +236,79 @@ export default function PerformancePage() {
 
             <Card className="mt-6 bg-[var(--card)]/50">
               <CardHeader>
-                <CardTitle>Top Performing Leads</CardTitle>
-                <CardDescription>
-                  Your most promising opportunities
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="w-5 h-5 text-[var(--primary)]" />
+                      Top Performing Leads
+                    </CardTitle>
+                    <CardDescription>
+                      Your most promising opportunities
+                    </CardDescription>
+                  </div>
+                  <Link href="/dashboard/leads">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      View All Leads
+                    </Button>
+                  </Link>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   {topLeads.map((lead) => (
                     <div
                       key={lead._id}
-                      className="flex items-center justify-between space-x-4"
+                      className="group flex items-center justify-between p-3 rounded-lg hover:bg-[var(--accent)]/5 transition-colors cursor-pointer"
+                      onClick={() => handleLeadClick(lead._id)}
                     >
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium leading-none flex items-center">
-                          {`${lead.firstName} ${lead.lastName}`}
-                          {getLeadStatusBadge(lead.status as 'hot' | 'warm' | 'cold')}
-                        </p>
-                        <p className="text-sm text-[var(--text-tertiary)]">
-                          {lead.company}
-                        </p>
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-center justify-center w-10 h-10 rounded-full bg-[var(--accent)]/10 group-hover:bg-[var(--accent)]/20 transition-colors">
+                          <span className="text-sm font-medium">
+                            {lead.firstName[0]}{lead.lastName[0]}
+                          </span>
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium leading-none">
+                              {`${lead.firstName} ${lead.lastName}`}
+                            </p>
+                            {getLeadStatusBadge(lead.status as 'hot' | 'warm' | 'cold')}
+                          </div>
+                          <div className="flex items-center gap-3 text-xs text-[var(--text-tertiary)]">
+                            <span className="flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)]" />
+                              {lead.company}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[var(--text-tertiary)]" />
+                              {lead.jobTitle}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm font-medium">
-                        Score: {lead.leadScore}
+                      <div className="flex items-center gap-4">
+                        <div className="flex flex-col items-end">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Score</span>
+                            <Badge variant="outline" className="font-mono">
+                              {lead.leadScore}
+                            </Badge>
+                          </div>
+                          <span className="text-xs text-[var(--text-tertiary)]">
+                            Last contact: {new Date(lead.lastContact).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleLeadClick(lead._id)
+                          }}
+                        >
+                          <ArrowUpRight className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}

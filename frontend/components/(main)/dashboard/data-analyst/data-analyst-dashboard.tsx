@@ -314,9 +314,9 @@ export function DataAnalystDashboard() {
           <CardContent className="flex flex-col h-full">
             <div className="flex-1 space-y-4">
               {data.recentReports?.length > 0 ? (
-                data.recentReports.map((report) => (
+                data.recentReports.map((report, index) => (
                   <div
-                    key={report.id}
+                    key={report.id || `report-${index}`}
                     className="flex items-start gap-3 text-sm border-b border-[var(--border)] last:border-0 pb-4 last:pb-0 hover:bg-[var(--accent)]/5 p-2 rounded-lg transition-colors"
                   >
                     <div className="flex-1">
@@ -325,7 +325,7 @@ export function DataAnalystDashboard() {
                           {report.type}
                         </p>
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--primary)]/10 text-[var(--primary)]">
-                          {report.visualization}
+                          {report.visualization?.charAt(0).toUpperCase() + report.visualization?.slice(1)} Chart
                         </span>
                       </div>
                     </div>

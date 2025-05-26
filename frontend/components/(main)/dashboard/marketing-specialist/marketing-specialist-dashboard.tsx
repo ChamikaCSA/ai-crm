@@ -103,7 +103,7 @@ export function MarketingSpecialistDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">
-              {((overview.campaigns.metrics.totalConversion / overview.campaigns.total) * 100).toFixed(1)}%
+              {((overview.campaigns.metrics.totalConversion / overview.campaigns.metrics.totalReach) * 100).toFixed(1)}%
             </div>
             <p className="text-sm text-[var(--text-tertiary)]">Average conversion</p>
           </CardContent>
@@ -176,12 +176,20 @@ export function MarketingSpecialistDashboard() {
                         </span>
                       </div>
                       <div className="flex items-center gap-4 mt-1">
-                        <p className="text-[var(--text-tertiary)]">
-                          Reach: {campaign.metrics.reach.toLocaleString()}
-                        </p>
-                        <p className="text-[var(--text-tertiary)]">
-                          Engagement: {campaign.metrics.engagement}%
-                        </p>
+                        {campaign.metrics ? (
+                          <>
+                            <p className="text-[var(--text-tertiary)]">
+                              Reach: {campaign.metrics.reach?.toLocaleString() ?? 'N/A'}
+                            </p>
+                            <p className="text-[var(--text-tertiary)]">
+                              Engagement: {campaign.metrics.engagement ?? 'N/A'}%
+                            </p>
+                          </>
+                        ) : (
+                          <p className="text-[var(--text-tertiary)]">
+                            No metrics available
+                          </p>
+                        )}
                       </div>
                     </div>
                     <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">

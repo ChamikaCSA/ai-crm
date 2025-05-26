@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { DataAnalystReport, DataAnalystReportType, DataVisualizationType } from './schemas/report.schema';
 import { DataAnalystForecast, DataAnalystForecastMetric, AnalysisType } from './schemas/forecast.schema';
 import * as PDFDocument from 'pdfkit';
@@ -207,36 +207,14 @@ export class DataAnalystService {
     return forecast;
   }
 
-  async getLatestForecasts(): Promise<Record<DataAnalystForecastMetric, DataAnalystForecast>> {
-    const metrics: DataAnalystForecastMetric[] = ['customer_lifetime_value', 'churn_rate', 'market_trends', 'customer_segments'];
-    const latestForecasts: Record<DataAnalystForecastMetric, DataAnalystForecast> = {} as Record<DataAnalystForecastMetric, DataAnalystForecast>;
-
-    for (const metric of metrics) {
-      const forecast = await this.forecastModel
-        .findOne({ metric })
-        .sort({ timestamp: -1 })
-        .exec();
-
-      if (forecast) {
-        latestForecasts[metric] = forecast;
-      }
-    }
-
-    return latestForecasts;
-  }
-
   async getForecastAccuracy(): Promise<Record<DataAnalystForecastMetric, number>> {
-    const metrics: DataAnalystForecastMetric[] = ['customer_lifetime_value', 'churn_rate', 'market_trends', 'customer_segments'];
+    const metrics = await this.getDashboardMetrics();
     const accuracy: Record<DataAnalystForecastMetric, number> = {} as Record<DataAnalystForecastMetric, number>;
 
     for (const metric of metrics) {
-      const forecast = await this.forecastModel
-        .findOne({ metric })
-        .sort({ timestamp: -1 })
-        .exec();
-
-      if (forecast) {
-        accuracy[metric] = forecast.metadata.accuracy;
+      if (metric.forecast) {
+        const metricKey = metric.name.toLowerCase().replace(/\s+/g, '_') as DataAnalystForecastMetric;
+        accuracy[metricKey] = metric.forecast.confidence;
       }
     }
 
@@ -401,10 +379,9 @@ export class DataAnalystService {
 
   async getOverviewData() {
     try {
-      const [metrics, trends, forecasts, reports] = await Promise.all([
+      const [metrics, trends, reports] = await Promise.all([
         this.getDashboardMetrics(),
         this.getDashboardTrends(),
-        this.getLatestForecasts(),
         this.getReports()
       ]);
 
@@ -427,6 +404,16 @@ export class DataAnalystService {
         .sort((a, b) => Math.abs(b.change) - Math.abs(a.change))
         .slice(0, 5);
 
+      // Create latest forecasts from metrics
+      const latestForecasts = metrics
+        .filter(metric => metric.forecast)
+        .map(metric => ({
+          metric: metric.name,
+          predictedValue: metric.forecast.value,
+          confidence: metric.forecast.confidence,
+          timestamp: new Date().toISOString()
+        }));
+
       return {
         summary: {
           totalReports,
@@ -437,12 +424,7 @@ export class DataAnalystService {
         },
         topMetrics,
         significantTrends,
-        latestForecasts: Object.entries(forecasts).map(([metric, forecast]) => ({
-          metric,
-          predictedValue: forecast.predictedValue,
-          confidence: forecast.confidence,
-          timestamp: forecast.timestamp
-        })),
+        latestForecasts,
         recentReports: reports
           .sort((a, b) => new Date(b.generatedAt).getTime() - new Date(a.generatedAt).getTime())
           .slice(0, 5)

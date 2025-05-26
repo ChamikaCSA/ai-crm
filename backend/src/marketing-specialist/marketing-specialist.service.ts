@@ -180,16 +180,16 @@ export class MarketingSpecialistService {
   async getDashboardOverview() {
     try {
       // Get active campaigns
-      const activeCampaigns = await this.campaignModel.countDocuments({ status: 'active' });
+      const activeCampaigns = await this.campaignModel.countDocuments({ status: CampaignStatus.ACTIVE });
       const totalCampaigns = await this.campaignModel.countDocuments();
       const campaignMetrics = await this.campaignAnalyticsModel.aggregate([
         {
           $group: {
             _id: null,
-            totalReach: { $sum: '$metrics.reach' },
-            totalEngagement: { $sum: '$metrics.engagement' },
-            totalConversion: { $sum: '$metrics.conversion' },
-            totalRetention: { $sum: '$metrics.retention' },
+            totalReach: { $sum: '$metrics.reach.total' },
+            totalEngagement: { $sum: '$metrics.engagement.impressions' },
+            totalConversion: { $sum: '$metrics.conversion.total' },
+            totalRetention: { $sum: { $multiply: ['$metrics.conversion.total', { $subtract: [1, '$metrics.engagement.bounceRate'] }] } },
           },
         },
       ]);

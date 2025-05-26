@@ -11,9 +11,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../user/schemas/user.schema';
 import { RequestWithUser } from '../common/interfaces/request.interface';
 import { Response } from 'express';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.SALES_MANAGER)
+@Roles(UserRole.SALES_MANAGER, UserRole.DATA_ANALYST)
 @Controller('sales-manager')
 export class SalesManagerController {
   constructor(
@@ -159,5 +160,21 @@ export class SalesManagerController {
   @Get('dashboard/summary')
   async getDashboardSummary() {
     return this.salesManagerService.getDashboardSummary();
+  }
+
+  @Post('pipeline/recalculate')
+  @ApiOperation({ summary: 'Recalculate pipeline metrics' })
+  @ApiResponse({ status: 200, description: 'Pipeline metrics recalculated successfully' })
+  async recalculatePipeline() {
+    await this.salesManagerService.recalculatePipeline();
+    return { message: 'Pipeline metrics recalculated successfully' };
+  }
+
+  @Post('pipeline/initialize')
+  @ApiOperation({ summary: 'Initialize pipeline stages' })
+  @ApiResponse({ status: 200, description: 'Pipeline stages initialized successfully' })
+  async initializePipeline() {
+    await this.salesManagerService.initializePipeline();
+    return { message: 'Pipeline stages initialized successfully' };
   }
 }

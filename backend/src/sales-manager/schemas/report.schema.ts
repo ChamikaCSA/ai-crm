@@ -8,13 +8,18 @@ export enum SalesReportType {
   TEAM_PERFORMANCE = 'team_performance',
   REVENUE_ANALYSIS = 'revenue_analysis',
   PRODUCT_PERFORMANCE = 'product_performance',
-  TERRITORY_ANALYSIS = 'territory_analysis'
+  TERRITORY_ANALYSIS = 'territory_analysis',
+  MONTHLY = 'monthly',
+  QUARTERLY = 'quarterly',
+  ANNUAL = 'annual',
+  CUSTOM = 'custom'
 }
 
 export enum SalesReportFormat {
   PDF = 'pdf',
   EXCEL = 'excel',
-  CSV = 'csv'
+  CSV = 'csv',
+  JSON = 'json'
 }
 
 @Schema({ timestamps: true })

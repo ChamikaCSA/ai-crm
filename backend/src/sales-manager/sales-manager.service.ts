@@ -4,12 +4,14 @@ import { Model } from 'mongoose';
 import { SalesReport, SalesReportType, SalesReportFormat } from './schemas/report.schema';
 import { SalesManagerForecast, SalesManagerForecastMetric } from './schemas/forecast.schema';
 import { Pipeline, PipelineStage } from './schemas/pipeline.schema';
+import { Lead } from '../sales-rep/schemas/lead.schema';
 import { CreateReportDto, ReportQueryDto } from './dto/report.dto';
 import { CreateForecastDto, ForecastQueryDto } from './dto/forecast.dto';
 import { UpdatePipelineDto, PipelineQueryDto } from './dto/pipeline.dto';
 import * as PDFDocument from 'pdfkit';
 import * as ExcelJS from 'exceljs';
 import { Parser } from 'json2csv';
+import { User, UserRole } from '../user/schemas/user.schema';
 
 @Injectable()
 export class SalesManagerService {
@@ -17,6 +19,8 @@ export class SalesManagerService {
     @InjectModel(SalesReport.name) private reportModel: Model<SalesReport>,
     @InjectModel(SalesManagerForecast.name) private forecastModel: Model<SalesManagerForecast>,
     @InjectModel(Pipeline.name) private pipelineModel: Model<Pipeline>,
+    @InjectModel(Lead.name) private leadModel: Model<Lead>,
+    @InjectModel(User.name) private userModel: Model<User>,
   ) {}
 
   // Report Service Methods
@@ -184,47 +188,34 @@ export class SalesManagerService {
 
   // Pipeline Service Methods
   async getPipelineMetrics(query: PipelineQueryDto): Promise<Pipeline[]> {
-    // Return mock pipeline data
-    const mockPipelineData = [
-      {
-        stage: 'LEAD',
-        count: 150,
-        value: 1500000,
-        conversionRate: 0.75
-      },
-      {
-        stage: 'QUALIFIED',
-        count: 112,
-        value: 1120000,
-        conversionRate: 0.85
-      },
-      {
-        stage: 'PROPOSAL',
-        count: 95,
-        value: 950000,
-        conversionRate: 0.65
-      },
-      {
-        stage: 'NEGOTIATION',
-        count: 62,
-        value: 620000,
-        conversionRate: 0.55
-      },
-      {
-        stage: 'CLOSED_WON',
-        count: 34,
-        value: 340000,
-        conversionRate: 1
-      },
-      {
-        stage: 'CLOSED_LOST',
-        count: 28,
-        value: 280000,
-        conversionRate: 0
-      }
-    ];
+    try {
+      const filter: any = {};
 
-    return mockPipelineData as Pipeline[];
+      // Add date range filter if provided
+      if (query.startDate && query.endDate) {
+        filter.lastUpdated = {
+          $gte: new Date(query.startDate),
+          $lte: new Date(query.endDate)
+        };
+      }
+
+      // Get all pipeline stages
+      const pipelineStages = await this.pipelineModel
+        .find(filter)
+        .sort({ stage: 1 })
+        .exec();
+
+      // If no pipeline stages exist, initialize them
+      if (pipelineStages.length === 0) {
+        await this.initializePipeline();
+        return this.pipelineModel.find().sort({ stage: 1 }).exec();
+      }
+
+      return pipelineStages;
+    } catch (error) {
+      console.error('Failed to get pipeline metrics:', error);
+      throw error;
+    }
   }
 
   async updatePipelineStage(stage: PipelineStage, data: UpdatePipelineDto): Promise<Pipeline> {
@@ -305,16 +296,21 @@ export class SalesManagerService {
   }
 
   private async getTeamPerformance() {
-    // This would typically come from a team performance service
-    // For now, returning mock data
+    // Get all active sales representatives
+    const salesReps = await this.userModel
+      .find({ role: UserRole.SALES_REP, isActive: true })
+      .select('firstName lastName')
+      .exec();
+
     return {
-      totalTeamSize: 10,
-      activeReps: 8,
-      averagePerformance: 85,
-      topPerformers: [
-        { name: 'John Doe', performance: 95, sales: 150000 },
-        { name: 'Jane Smith', performance: 92, sales: 145000 }
-      ]
+      totalTeamSize: salesReps.length,
+      activeReps: salesReps.length,
+      averagePerformance: 0,
+      topPerformers: salesReps.map(rep => ({
+        name: `${rep.firstName} ${rep.lastName}`,
+        performance: 0,
+        sales: 0
+      }))
     };
   }
 
@@ -541,5 +537,86 @@ export class SalesManagerService {
     const json2csvParser = new Parser({ fields });
     const csv = json2csvParser.parse(data.metrics);
     return Buffer.from(csv);
+  }
+
+  async initializePipeline(): Promise<void> {
+    try {
+      // Initialize all pipeline stages
+      for (const stage of Object.values(PipelineStage)) {
+        await this.pipelineModel.findOneAndUpdate(
+          { stage },
+          {
+            count: 0,
+            value: 0,
+            conversionRate: 0,
+            metrics: {
+              averageDealSize: 0,
+              averageTimeInStage: 0,
+              winRate: 0,
+              lossRate: 0
+            },
+            lastUpdated: new Date()
+          },
+          { upsert: true }
+        );
+      }
+    } catch (error) {
+      console.error('Failed to initialize pipeline:', error);
+      throw error;
+    }
+  }
+
+  async recalculatePipeline(): Promise<void> {
+    try {
+      // Get all leads
+      const leads = await this.leadModel.find().exec();
+
+      // Reset pipeline
+      await this.initializePipeline();
+
+      // Update pipeline based on current leads
+      for (const lead of leads) {
+        await this.updatePipelineMetrics(lead);
+      }
+    } catch (error) {
+      console.error('Failed to recalculate pipeline:', error);
+      throw error;
+    }
+  }
+
+  private async updatePipelineMetrics(lead: Lead): Promise<void> {
+    try {
+      const pipelineStage = lead.status as unknown as PipelineStage;
+
+      // Get current pipeline stage data
+      const currentStage = await this.pipelineModel.findOne({ stage: pipelineStage });
+
+      // Calculate new metrics
+      const newCount = (currentStage?.count || 0) + 1;
+      const newValue = (currentStage?.value || 0) + (lead.preferences?.budget || 0);
+
+      // Update pipeline stage
+      await this.pipelineModel.findOneAndUpdate(
+        { stage: pipelineStage },
+        {
+          count: newCount,
+          value: newValue,
+          lastUpdated: new Date(),
+          metrics: {
+            averageDealSize: newValue / newCount,
+            averageTimeInStage: 0, // Calculate based on lead history
+            winRate: pipelineStage === PipelineStage.CLOSED_WON ? 100 : 0,
+            lossRate: pipelineStage === PipelineStage.CLOSED_LOST ? 100 : 0
+          }
+        },
+        { upsert: true }
+      );
+
+      // Recalculate conversion rates
+      await this.calculateConversionRates();
+    } catch (error) {
+      console.error('Failed to update pipeline metrics:', error);
+      throw error;
+    }
   }
 }

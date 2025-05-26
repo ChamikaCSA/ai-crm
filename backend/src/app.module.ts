@@ -17,6 +17,8 @@ import { SalesManagerModule } from './sales-manager/sales-manager.module';
 import { MarketingSpecialistModule } from './marketing-specialist/marketing-specialist.module';
 import { DataAnalystModule } from './data-analyst/data-analyst.module';
 import { AdminModule } from './admin/admin.module';
+import { SeederModule } from './seeder/seeder.module';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -60,7 +62,9 @@ import { AdminModule } from './admin/admin.module';
     SalesManagerModule,
     MarketingSpecialistModule,
     DataAnalystModule,
-    AdminModule
+    AdminModule,
+    SeederModule,
+    SharedModule
   ],
   providers: [
     {

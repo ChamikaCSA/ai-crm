@@ -110,10 +110,19 @@ export class DataAnalystController {
     @Query('type') type?: 'latest' | 'accuracy',
   ) {
     if (type === 'latest') {
-      const latestForecasts = await this.dataAnalystService.getLatestForecasts();
+      const metrics = await this.dataAnalystService.getDashboardMetrics();
+      const latestForecasts = metrics
+        .filter(m => m.forecast)
+        .map(m => ({
+          metric: m.name.toLowerCase().replace(/\s+/g, '_') as DataAnalystForecastMetric,
+          predictedValue: m.forecast.value,
+          confidence: m.forecast.confidence,
+          timestamp: new Date().toISOString()
+        }));
+
       return {
         success: true,
-        data: metric ? latestForecasts[metric] : latestForecasts
+        data: metric ? latestForecasts.find(f => f.metric === metric) : latestForecasts
       };
     }
 

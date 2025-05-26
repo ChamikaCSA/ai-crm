@@ -14,7 +14,25 @@ interface DashboardSummary {
     averageDealSize: number;
     winRate: number;
   };
-  forecasts: Forecast[];
+  forecasts: Array<{
+    _id: string;
+    metric: string;
+    predictedValue: number;
+    confidence: number;
+    factors: {
+      historicalTrend: number;
+      seasonality: number;
+      marketConditions: number;
+      teamPerformance: number;
+    };
+    timestamp: string;
+    predictionDate: string;
+    date: string;
+    value: number;
+    accuracy: number;
+    createdAt: string;
+    updatedAt: string;
+  }>;
   team: {
     totalTeamSize: number;
     activeReps: number;
@@ -25,7 +43,22 @@ interface DashboardSummary {
       sales: number;
     }>;
   };
-  reports: Report[];
+  reports: Array<{
+    _id: string;
+    type: string;
+    format: string;
+    name: string;
+    description: string;
+    parameters: {
+      startDate: string;
+      endDate: string;
+      metrics: string[];
+    };
+    generatedAt: string;
+    expiresAt: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
 }
 
 export function SalesManagerDashboard() {
@@ -66,6 +99,7 @@ export function SalesManagerDashboard() {
           <CardContent>
             <div className="text-3xl font-bold">{summary.team.activeReps}/{summary.team.totalTeamSize}</div>
             <p className="text-sm text-[var(--text-tertiary)]">Active sales reps</p>
+            <p className="text-sm text-[var(--text-tertiary)] mt-2">Avg Performance: {summary.team.averagePerformance}%</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
@@ -78,6 +112,7 @@ export function SalesManagerDashboard() {
           <CardContent>
             <div className="text-3xl font-bold">${summary.pipeline.totalValue.toLocaleString()}</div>
             <p className="text-sm text-[var(--text-tertiary)]">Total pipeline value</p>
+            <p className="text-sm text-[var(--text-tertiary)] mt-2">Total deals: {summary.pipeline.totalCount}</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
@@ -88,7 +123,7 @@ export function SalesManagerDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">{summary.pipeline.winRate.toFixed(1)}%</div>
+            <div className="text-3xl font-bold">{(summary.pipeline.winRate ?? 0).toFixed(1)}%</div>
             <p className="text-sm text-[var(--text-tertiary)]">Current win rate</p>
           </CardContent>
         </Card>
@@ -192,6 +227,9 @@ export function SalesManagerDashboard() {
                         Format: {report.format}
                       </p>
                     </div>
+                    <p className="text-xs text-[var(--text-tertiary)] mt-1">
+                      {report.description}
+                    </p>
                   </div>
                   <time className="text-xs text-[var(--text-tertiary)] whitespace-nowrap">
                     {new Date(report.generatedAt).toLocaleDateString()}
@@ -209,46 +247,6 @@ export function SalesManagerDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Latest Forecasts */}
-      <Card className="bg-gradient-to-br from-[var(--card)] to-[var(--card)]/80">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <TrendingUp className="w-6 h-6 text-[var(--primary)]" />
-            Latest Forecasts
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {summary.forecasts.map((forecast) => (
-              <div
-                key={forecast._id}
-                className="p-4 rounded-lg border border-[var(--border)] hover:bg-[var(--accent)]/5 transition-colors"
-              >
-                <h4 className="font-medium text-[var(--text-primary)] mb-2">
-                  {forecast.metric}
-                </h4>
-                <div className="text-2xl font-bold">
-                  ${forecast.predictedValue.toLocaleString()}
-                </div>
-                <p className="text-sm text-[var(--text-tertiary)]">
-                  Confidence: {forecast.confidence}%
-                </p>
-                <p className="text-xs text-[var(--text-tertiary)] mt-2">
-                  Updated: {new Date(forecast.timestamp).toLocaleDateString()}
-                </p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4">
-            <Link href="/dashboard/forecasting">
-              <Button variant="outline" size="sm" className="w-full">
-                View Detailed Forecasts
-              </Button>
-            </Link>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }

@@ -43,7 +43,7 @@ interface SystemMetric {
   name: string
   value: number
   trend: number
-  status: 'good' | 'warning' | 'critical'
+  status: 'excellent' | 'good' | 'warning' | 'critical'
 }
 
 interface AuditLog {
@@ -112,6 +112,7 @@ export default function SystemPage() {
 
   const getStatusColor = (status: SystemMetric['status']) => {
     const colors = {
+      excellent: 'bg-emerald-100 text-emerald-800',
       good: 'bg-green-100 text-green-800',
       warning: 'bg-yellow-100 text-yellow-800',
       critical: 'bg-red-100 text-red-800',

@@ -33,7 +33,15 @@ interface Campaign {
   type: string
   status: string
   targetSegments: string[]
-  content: string
+  content: {
+    subject?: string
+    body: string
+    mediaUrls?: string[]
+    callToAction: {
+      text: string
+      url: string
+    }
+  }
   schedule: {
     frequency: string
     time: string
@@ -64,7 +72,14 @@ export default function CampaignsPage() {
     budget: 0,
     objectives: '',
     description: '',
-    content: '',
+    content: {
+      subject: '',
+      body: '',
+      callToAction: {
+        text: '',
+        url: ''
+      }
+    },
     schedule: {
       frequency: 'daily',
       time: '09:00',
@@ -132,7 +147,14 @@ export default function CampaignsPage() {
         budget: 0,
         objectives: '',
         description: '',
-        content: '',
+        content: {
+          subject: '',
+          body: '',
+          callToAction: {
+            text: '',
+            url: ''
+          }
+        },
         schedule: {
           frequency: 'daily',
           time: '09:00',
@@ -156,7 +178,11 @@ export default function CampaignsPage() {
       budget: 0,
       objectives: '',
       description: campaign.description,
-      content: campaign.content,
+      content: {
+        subject: campaign.content.subject || '',
+        body: campaign.content.body,
+        callToAction: campaign.content.callToAction || { text: '', url: '' }
+      },
       schedule: campaign.schedule
     })
     setShowEditModal(true)
@@ -366,12 +392,70 @@ export default function CampaignsPage() {
                 </div>
                 <div>
                   <Label htmlFor="content">Campaign Content</Label>
-                  <Textarea
-                    id="content"
-                    value={newCampaign.content}
-                    onChange={(e) => setNewCampaign({ ...newCampaign, content: e.target.value })}
-                    placeholder="Enter campaign content"
-                  />
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="contentSubject">Subject</Label>
+                      <Input
+                        id="contentSubject"
+                        value={newCampaign.content.subject}
+                        onChange={(e) => setNewCampaign({
+                          ...newCampaign,
+                          content: { ...newCampaign.content, subject: e.target.value }
+                        })}
+                        placeholder="Enter campaign subject"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="contentBody">Body</Label>
+                      <Textarea
+                        id="contentBody"
+                        value={newCampaign.content.body}
+                        onChange={(e) => setNewCampaign({
+                          ...newCampaign,
+                          content: { ...newCampaign.content, body: e.target.value }
+                        })}
+                        placeholder="Enter campaign content"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="ctaText">Call to Action Text</Label>
+                        <Input
+                          id="ctaText"
+                          value={newCampaign.content.callToAction.text}
+                          onChange={(e) => setNewCampaign({
+                            ...newCampaign,
+                            content: {
+                              ...newCampaign.content,
+                              callToAction: {
+                                ...newCampaign.content.callToAction,
+                                text: e.target.value
+                              }
+                            }
+                          })}
+                          placeholder="Enter CTA text"
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="ctaUrl">Call to Action URL</Label>
+                        <Input
+                          id="ctaUrl"
+                          value={newCampaign.content.callToAction.url}
+                          onChange={(e) => setNewCampaign({
+                            ...newCampaign,
+                            content: {
+                              ...newCampaign.content,
+                              callToAction: {
+                                ...newCampaign.content.callToAction,
+                                url: e.target.value
+                              }
+                            }
+                          })}
+                          placeholder="Enter CTA URL"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -528,7 +612,22 @@ export default function CampaignsPage() {
                           Campaign Content
                         </h4>
                         <div className="bg-[var(--card)] p-3 rounded-lg">
-                          <p className="text-[var(--text-secondary)] whitespace-pre-wrap">{campaign.content}</p>
+                          {campaign.content.subject && (
+                            <p className="font-medium mb-2">{campaign.content.subject}</p>
+                          )}
+                          <p className="text-[var(--text-secondary)] whitespace-pre-wrap">{campaign.content.body}</p>
+                          {campaign.content.callToAction && (
+                            <div className="mt-2">
+                              <a
+                                href={campaign.content.callToAction.url}
+                                className="text-primary hover:underline"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                {campaign.content.callToAction.text}
+                              </a>
+                            </div>
+                          )}
                         </div>
                       </div>
 
