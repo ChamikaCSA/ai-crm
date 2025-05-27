@@ -102,6 +102,11 @@ export function UserDialog({ open, onOpenChange, onUserUpdated, userId, trigger 
       const url = userId ? `/api/admin/users/${userId}` : '/api/admin/users'
       const method = userId ? 'PUT' : 'POST'
 
+      console.log('Submitting user data:', {
+        ...user,
+        ...(userId ? {} : { password }), // Only include password for new users
+      })
+
       const response = await fetch(url, {
         method,
         headers: {
@@ -113,14 +118,25 @@ export function UserDialog({ open, onOpenChange, onUserUpdated, userId, trigger 
         }),
       })
 
-      if (!response.ok) throw new Error('Failed to save user')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        console.error('Failed to save user:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        throw new Error(errorData?.error || 'Failed to save user')
+      }
+
+      const data = await response.json()
+      console.log('User saved successfully:', data)
 
       toast.success(`User ${userId ? 'updated' : 'created'} successfully`)
       onUserUpdated()
       onOpenChange(false)
     } catch (error) {
       console.error('Error saving user:', error)
-      toast.error(`Failed to ${userId ? 'update' : 'create'} user`)
+      toast.error(error instanceof Error ? error.message : `Failed to ${userId ? 'update' : 'create'} user`)
     } finally {
       setIsLoading(false)
     }
@@ -137,7 +153,11 @@ export function UserDialog({ open, onOpenChange, onUserUpdated, userId, trigger 
 
   return (
     <>
-      {trigger}
+      {trigger && (
+        <div onClick={() => onOpenChange(true)}>
+          {trigger}
+        </div>
+      )}
       <Modal
         isOpen={open}
         onClose={() => onOpenChange(false)}

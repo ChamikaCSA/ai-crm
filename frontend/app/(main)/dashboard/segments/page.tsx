@@ -32,6 +32,7 @@ export default function SegmentsPage() {
   const { user } = useAuth()
   const [segments, setSegments] = useState<Segment[]>([])
   const [loading, setLoading] = useState(true)
+  const [isCreating, setIsCreating] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -68,6 +69,7 @@ export default function SegmentsPage() {
 
   const createSegment = async () => {
     try {
+      setIsCreating(true)
       const response = await fetch('/api/marketing-specialist/segments', {
         method: 'POST',
         headers: {
@@ -83,10 +85,17 @@ export default function SegmentsPage() {
       const data = await response.json()
       setSegments([data.data, ...segments])
       setShowCreateModal(false)
-      setNewSegment({ name: '', type: '', description: '', criteria: {} })
+      setNewSegment({
+        name: '',
+        type: '',
+        description: '',
+        criteria: {}
+      })
     } catch (error) {
       setError('Failed to create segment')
       console.error('Error creating segment:', error)
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -246,9 +255,16 @@ export default function SegmentsPage() {
                   </Button>
                   <Button
                     onClick={createSegment}
-                    disabled={!newSegment.name || !newSegment.type || !newSegment.description}
+                    disabled={!newSegment.name || !newSegment.type || isCreating}
                   >
-                    Create Segment
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Segment'
+                    )}
                   </Button>
                 </div>
               </div>

@@ -29,9 +29,9 @@ import { interactionService } from '@/lib/interaction-service'
 
 interface SupportTicketMessage {
   _id: string
-  author: string
-  message: string
-  timestamp: string
+  userId: string
+  content: string
+  createdAt: string
   attachments?: Array<{
     name: string
     url: string
@@ -173,15 +173,15 @@ function CreateSupportTicketForm({ onTicketCreated }: { onTicketCreated?: () => 
           {attachments.length > 0 && (
             <div className="mt-2 p-2 bg-[var(--accent)]/5 rounded-lg border border-[var(--border)]">
               <div className="flex flex-wrap gap-2">
-                {attachments.map((file, index) => (
+                {attachments.map((file) => (
                   <div
-                    key={index}
+                    key={`${file.name}-${file.size}-${file.lastModified}`}
                     className="flex items-center gap-2 bg-[var(--card)] px-2 py-1 rounded-md text-sm"
                   >
                     <span className="text-[var(--text-secondary)]">{file.name}</span>
                     <button
                       type="button"
-                      onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                      onClick={() => setAttachments(prev => prev.filter((f) => f.name !== file.name || f.size !== file.size || f.lastModified !== file.lastModified))}
                       className="text-[var(--text-tertiary)] hover:text-[var(--destructive)] transition-colors"
                     >
                       ×
@@ -380,9 +380,9 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
             <p className="mt-2">{currentTicket.description}</p>
             {currentTicket.attachments && currentTicket.attachments.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
-                {currentTicket.attachments.map((attachment, index) => (
+                {currentTicket.attachments.map((attachment) => (
                   <button
-                    key={index}
+                    key={`${attachment.name}-${attachment.url}`}
                     onClick={() => downloadAttachment(attachment.url.split('/').pop() || '', attachment.name)}
                     className="flex items-center gap-2 text-xs bg-[var(--card)]/50 px-2 py-1 rounded-md hover:bg-[var(--card)]/80 transition-colors"
                   >
@@ -393,36 +393,36 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
               </div>
             )}
           </div>
-          {currentTicket.replies?.map((reply, index) => (
+          {currentTicket.replies?.map((reply) => (
             <div
               key={reply._id}
               className={`p-4 rounded-lg ${
-                reply.author === currentTicket.userId
+                reply.userId === currentTicket.userId
                   ? 'bg-[var(--primary)] text-[var(--primary-foreground)]'
                   : 'bg-[var(--accent)] text-[var(--accent-foreground)]'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  {reply.author === currentTicket.userId ? (
+                  {reply.userId === currentTicket.userId ? (
                     <UserIcon className="w-4 h-4" />
                   ) : (
                     <Bot className="w-4 h-4" />
                   )}
                   <span className="font-medium">
-                    {reply.author === currentTicket.userId ? 'You' : 'Support Team'}
+                    {reply.userId === currentTicket.userId ? 'You' : 'Support Team'}
                   </span>
                 </div>
                 <time className="text-xs opacity-75">
-                  {new Date(reply.timestamp).toLocaleString()}
+                  {new Date(reply.createdAt).toLocaleString()}
                 </time>
               </div>
-              <p className="mt-2">{reply.message}</p>
+              <p className="mt-2">{reply.content}</p>
               {reply.attachments && reply.attachments.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {reply.attachments.map((attachment, index) => (
+                  {reply.attachments.map((attachment) => (
                     <button
-                      key={index}
+                      key={`${attachment.name}-${attachment.url}`}
                       onClick={() => downloadAttachment(attachment.url.split('/').pop() || '', attachment.name)}
                       className="flex items-center gap-2 text-xs bg-[var(--card)]/50 px-2 py-1 rounded-md hover:bg-[var(--card)]/80 transition-colors"
                     >
@@ -467,15 +467,15 @@ function TicketDetails({ ticket, onClose, onTicketUpdated }: { ticket: SupportTi
             {attachments.length > 0 && (
               <div className="mt-2 p-2 bg-[var(--accent)]/5 rounded-lg border border-[var(--border)]">
                 <div className="flex flex-wrap gap-2">
-                  {attachments.map((file, index) => (
+                  {attachments.map((file) => (
                     <div
-                      key={index}
+                      key={`${file.name}-${file.size}-${file.lastModified}`}
                       className="flex items-center gap-2 bg-[var(--card)] px-2 py-1 rounded-md text-sm"
                     >
                       <span className="text-[var(--text-secondary)]">{file.name}</span>
                       <button
                         type="button"
-                        onClick={() => setAttachments(prev => prev.filter((_, i) => i !== index))}
+                        onClick={() => setAttachments(prev => prev.filter((f) => f.name !== file.name || f.size !== file.size || f.lastModified !== file.lastModified))}
                         className="text-[var(--text-tertiary)] hover:text-[var(--destructive)] transition-colors"
                       >
                         ×

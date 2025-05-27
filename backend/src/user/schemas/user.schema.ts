@@ -68,6 +68,18 @@ export class User extends Document {
 
   @Prop({ type: Object, default: {} })
   settings: Record<string, any>;
+
+  @Prop({ type: Object })
+  demographics: {
+    age?: number;
+    gender?: string;
+    location?: string;
+    income?: number;
+    education?: string;
+    occupation?: string;
+    companySize?: string;
+    industry?: string;
+  };
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

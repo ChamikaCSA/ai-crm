@@ -40,6 +40,8 @@ export class SeederService {
     @InjectModel(Pipeline.name) private pipelineModel: Model<Pipeline>,
   ) {}
 
+  private createdUsers: User[] = [];
+
   async deleteAll() {
     await Promise.all([
       this.userModel.deleteMany({}),
@@ -62,9 +64,10 @@ export class SeederService {
   }
 
   async seed() {
-    await this.seedUsers();
+    this.createdUsers = await this.seedUsers();
     await this.seedPipelines();
     await this.seedLeads();
+    await this.seedCustomersFromLeads();
     await this.seedCampaigns();
     await this.seedCustomerSegments();
     await this.seedSupportTickets();
@@ -394,22 +397,72 @@ export class SeederService {
         criteria: {
           behavior: {
             purchaseHistory: ['premium-products'],
-            engagementLevel: 'high',
-          },
+            engagementLevel: 'high'
+          }
         },
+        aiInsights: {
+          keyCharacteristics: [
+            'High-value customers typically show consistent purchase patterns',
+            'They engage frequently with premium products and services',
+            'These customers demonstrate brand loyalty and high lifetime value'
+          ],
+          recommendations: [
+            'Offer exclusive early access to new premium products',
+            'Provide personalized VIP support and services',
+            'Create loyalty rewards program with premium benefits'
+          ],
+          predictedBehavior: [
+            'Likely to respond positively to premium product launches',
+            'High probability of repeat purchases',
+            'Strong potential for upselling and cross-selling opportunities'
+          ]
+        }
       },
+      {
+        name: 'New Customers',
+        description: 'Recently acquired customers within the last 30 days',
+        type: 'demographic',
+        customerIds: [],
+        criteria: {
+          demographic: {
+            acquisitionDate: 'last30days',
+            purchaseFrequency: 'low'
+          }
+        },
+        aiInsights: {
+          keyCharacteristics: [
+            'Recently joined customer base',
+            'Limited purchase history',
+            'Early stage in customer lifecycle'
+          ],
+          recommendations: [
+            'Send welcome package and onboarding materials',
+            'Provide educational content about product features',
+            'Offer first-time purchase incentives'
+          ],
+          predictedBehavior: [
+            'May need more guidance and support',
+            'Likely to explore basic product features first',
+            'Potential for growth into regular customers'
+          ]
+        }
+      }
     ];
     await this.customerSegmentModel.insertMany(segments);
   }
 
   private async seedSupportTickets() {
+    const customer = this.createdUsers.find(user => user.role === UserRole.CUSTOMER);
+    if (!customer) {
+      throw new Error('Customer user not found');
+    }
+
     const tickets = [
       {
-        userId: 'user123',
-        title: 'Product Inquiry',
+        userId: customer._id,
+        subject: 'Product Inquiry',
         description: 'Need information about enterprise features',
         status: SupportTicketStatus.OPEN,
-        type: 'product',
         priority: SupportTicketPriority.MEDIUM,
         category: SupportTicketCategory.GENERAL,
       },
@@ -418,13 +471,18 @@ export class SeederService {
   }
 
   private async seedAuditLogs() {
+    const admin = this.createdUsers.find(user => user.role === UserRole.ADMIN);
+    if (!admin) {
+      throw new Error('Admin user not found');
+    }
+
     const logs = [
       {
-        userId: 'user123',
-        userEmail: 'user@example.com',
+        userId: admin._id,
+        userEmail: admin.email,
         action: AuditAction.LOGIN,
         entityType: 'user',
-        entityId: 'user123',
+        entityId: admin._id,
         ipAddress: '127.0.0.1',
         userAgent: 'Mozilla/5.0',
       },
@@ -433,9 +491,14 @@ export class SeederService {
   }
 
   private async seedInteractions() {
+    const salesRep = this.createdUsers.find(user => user.role === UserRole.SALES_REP);
+    if (!salesRep) {
+      throw new Error('Sales rep user not found');
+    }
+
     const interactions = [
       {
-        userId: 'user123',
+        userId: salesRep._id,
         type: InteractionType.EMAIL,
         description: 'Sent welcome email',
         metadata: {
@@ -624,9 +687,14 @@ export class SeederService {
   }
 
   private async seedRecommendations() {
+    const customer = this.createdUsers.find(user => user.role === UserRole.CUSTOMER);
+    if (!customer) {
+      throw new Error('Customer user not found');
+    }
+
     const recommendations = [
       {
-        userId: 'user123',
+        userId: customer._id,
         content: 'Based on your purchase history, you might be interested in our premium package',
         type: 'product',
         metadata: {
@@ -639,6 +707,11 @@ export class SeederService {
   }
 
   private async seedDashboardConfigs() {
+    const dataAnalyst = this.createdUsers.find(user => user.role === UserRole.DATA_ANALYST);
+    if (!dataAnalyst) {
+      throw new Error('Data analyst user not found');
+    }
+
     const configs = [
       {
         id: 'dashboard1',
@@ -647,7 +720,7 @@ export class SeederService {
         layout: 'grid',
         refreshInterval: 300,
         isDefault: true,
-        userId: 'user123',
+        userId: dataAnalyst._id,
       },
     ];
     await this.dashboardConfigModel.insertMany(configs);
@@ -670,5 +743,114 @@ export class SeederService {
       },
     ];
     await this.salesReportModel.insertMany(reports);
+  }
+
+  private async seedCustomersFromLeads() {
+    const leads = await this.leadModel.find().exec();
+    const hashedPassword = await bcrypt.hash('password123', 10);
+
+    const customers = leads.map(lead => {
+      // Generate random but realistic data for segmentation
+      const age = Math.floor(Math.random() * (65 - 25) + 25); // Random age between 25-65
+      const gender = ['male', 'female', 'other'][Math.floor(Math.random() * 3)];
+      const locations = ['New York', 'San Francisco', 'London', 'Tokyo', 'Berlin', 'Singapore', 'Sydney', 'Toronto'];
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      const income = lead.preferences?.budget || Math.floor(Math.random() * (200000 - 50000) + 50000);
+      const education = ['Bachelor', 'Master', 'PhD', 'High School'][Math.floor(Math.random() * 4)];
+      const industry = ['Technology', 'Finance', 'Healthcare', 'Manufacturing', 'Retail', 'Education'][Math.floor(Math.random() * 6)];
+      const companySize = ['1-50', '51-200', '201-500', '501-1000', '1000+'][Math.floor(Math.random() * 5)];
+
+      // Generate purchase history and engagement data
+      const purchaseHistory = Array(Math.floor(Math.random() * 5)).fill(null).map(() => ({
+        date: new Date(Date.now() - Math.floor(Math.random() * 365 * 24 * 60 * 60 * 1000)),
+        amount: Math.floor(Math.random() * (10000 - 1000) + 1000),
+        category: ['Software', 'Services', 'Hardware', 'Consulting'][Math.floor(Math.random() * 4)]
+      }));
+
+      const totalSpent = purchaseHistory.reduce((sum, p) => sum + p.amount, 0);
+      const averageOrderValue = totalSpent / (purchaseHistory.length || 1);
+      const purchaseFrequency = purchaseHistory.length / 12; // purchases per year
+
+      // Generate interaction history
+      const interactionTypes = ['email', 'website', 'support', 'social', 'product'];
+      const interactions = Array(Math.floor(Math.random() * 10)).fill(null).map(() => ({
+        type: interactionTypes[Math.floor(Math.random() * interactionTypes.length)],
+        date: new Date(Date.now() - Math.floor(Math.random() * 90 * 24 * 60 * 60 * 1000)),
+        outcome: ['positive', 'neutral', 'negative'][Math.floor(Math.random() * 3)]
+      }));
+
+      const engagementScore = Math.min(5, Math.max(1,
+        (interactions.length * 0.5) +
+        (purchaseHistory.length * 0.3) +
+        (Math.random() * 2)
+      ));
+
+      return {
+        email: lead.email,
+        password: hashedPassword,
+        firstName: lead.firstName,
+        lastName: lead.lastName,
+        role: UserRole.CUSTOMER,
+        isEmailVerified: true,
+        demographics: {
+          age,
+          gender,
+          location,
+          income,
+          education,
+          occupation: lead.jobTitle,
+          companySize,
+          industry,
+          company: lead.company
+        },
+        preferences: [
+          {
+            category: 'contact',
+            value: lead.preferences?.preferredContactMethod || 'email',
+            score: 1
+          },
+          {
+            category: 'timeline',
+            value: lead.preferences?.timeline || 'Q2 2024',
+            score: 1
+          },
+          {
+            category: 'product',
+            value: ['Software', 'Services', 'Hardware', 'Consulting'][Math.floor(Math.random() * 4)],
+            score: Math.random()
+          },
+          {
+            category: 'channel',
+            value: ['email', 'phone', 'chat', 'social'][Math.floor(Math.random() * 4)],
+            score: Math.random()
+          }
+        ],
+        settings: {
+          notifications: {
+            email: true,
+            sms: lead.preferences?.preferredContactMethod === 'phone',
+            marketing: Math.random() > 0.5,
+            updates: Math.random() > 0.5
+          },
+          privacy: {
+            dataSharing: Math.random() > 0.5,
+            analytics: Math.random() > 0.5
+          }
+        },
+        interactionHistory: interactions.map(i => `${i.type}:${i.date.toISOString()}:${i.outcome}`),
+        purchaseHistory: purchaseHistory.map(p => `${p.date.toISOString()}:${p.amount}:${p.category}`),
+        metrics: {
+          lifetimeValue: totalSpent,
+          averageOrderValue,
+          purchaseFrequency,
+          engagementScore,
+          lastPurchaseDate: purchaseHistory.length > 0 ? purchaseHistory[purchaseHistory.length - 1].date : null,
+          lastInteractionDate: interactions.length > 0 ? interactions[interactions.length - 1].date : null
+        }
+      };
+    });
+
+    const createdCustomers = await this.userModel.insertMany(customers);
+    this.createdUsers = [...this.createdUsers, ...createdCustomers];
   }
 }

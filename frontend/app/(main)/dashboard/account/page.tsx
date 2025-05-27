@@ -212,7 +212,7 @@ export default function AccountPage() {
               <div className="space-y-8">
                 <div className="flex items-start gap-6 p-4 rounded-lg bg-[var(--card)]/50 hover:bg-[var(--card)]/80 transition-colors">
                   <ProfilePicture user={{
-                    id: accountDetails.user.id,
+                    _id: accountDetails.user._id,
                     email: accountDetails.user.email,
                     firstName: accountDetails.user.firstName,
                     lastName: accountDetails.user.lastName,

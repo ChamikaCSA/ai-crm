@@ -70,9 +70,9 @@ export interface SupportTicket {
     url: string;
   }>;
   replies?: Array<{
-    author: string;
-    message: string;
-    timestamp: string;
+    userId: string;
+    content: string;
+    createdAt: string;
     attachments?: Array<{
       name: string;
       url: string;
@@ -94,7 +94,7 @@ export enum InteractionType {
 
 export interface AccountDetails {
   user: {
-    id: string;
+    _id: string;
     firstName: string;
     lastName: string;
     email: string;

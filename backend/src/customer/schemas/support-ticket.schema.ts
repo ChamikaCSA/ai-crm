@@ -29,16 +29,13 @@ export class SupportTicket extends Document {
   userId: string;
 
   @Prop({ required: true })
-  title: string;
+  subject: string;
 
   @Prop({ required: true })
   description: string;
 
   @Prop({ required: true, enum: SupportTicketStatus, default: SupportTicketStatus.OPEN })
   status: SupportTicketStatus;
-
-  @Prop({ required: true })
-  type: string;
 
   @Prop({ type: String, enum: SupportTicketPriority, default: SupportTicketPriority.MEDIUM })
   priority: SupportTicketPriority;

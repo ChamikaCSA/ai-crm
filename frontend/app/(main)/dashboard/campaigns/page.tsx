@@ -57,7 +57,8 @@ export default function CampaignsPage() {
   const [segments, setSegments] = useState<Segment[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('active')
+  const [isCreating, setIsCreating] = useState(false)
+  const [activeTab, setActiveTab] = useState('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -123,6 +124,7 @@ export default function CampaignsPage() {
 
   const createCampaign = async () => {
     try {
+      setIsCreating(true)
       const response = await fetch('/api/marketing-specialist/campaigns', {
         method: 'POST',
         headers: {
@@ -135,8 +137,7 @@ export default function CampaignsPage() {
         throw new Error('Failed to create campaign')
       }
 
-      const data = await response.json()
-      setCampaigns([data.data, ...campaigns])
+      await fetchCampaigns()
       setShowCreateModal(false)
       setNewCampaign({
         name: '',
@@ -164,6 +165,8 @@ export default function CampaignsPage() {
     } catch (error) {
       setError('Failed to create campaign')
       console.error('Error creating campaign:', error)
+    } finally {
+      setIsCreating(false)
     }
   }
 
@@ -256,7 +259,7 @@ export default function CampaignsPage() {
   }
 
   const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.status.toLowerCase() === activeTab.toLowerCase()
+    campaign && activeTab === 'all' ? true : campaign?.status?.toLowerCase() === activeTab.toLowerCase()
   )
 
   if (loading) {
@@ -515,9 +518,16 @@ export default function CampaignsPage() {
                   </Button>
                   <Button
                     onClick={createCampaign}
-                    disabled={!newCampaign.name || !newCampaign.type || !newCampaign.targetSegment}
+                    disabled={!newCampaign.name || !newCampaign.type || !newCampaign.targetSegment || isCreating}
                   >
-                    Create Campaign
+                    {isCreating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Campaign'
+                    )}
                   </Button>
                 </div>
               </div>
@@ -526,8 +536,9 @@ export default function CampaignsPage() {
         </div>
       )}
 
-      <Tabs defaultValue="active" className="space-y-4" onValueChange={setActiveTab}>
+      <Tabs defaultValue="all" className="space-y-4" onValueChange={setActiveTab}>
         <TabsList>
+          <TabsTrigger value="all">All Campaigns</TabsTrigger>
           <TabsTrigger value="active">Active</TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
           <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
@@ -538,13 +549,14 @@ export default function CampaignsPage() {
           <div className="grid grid-cols-1 gap-4">
             {filteredCampaigns.length > 0 ? (
               filteredCampaigns.map((campaign) => (
+                campaign && (
                 <Card key={campaign._id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
                         <CardTitle className="text-xl flex items-center gap-2">
                           <Target className="h-5 w-5" />
-                          {campaign.name}
+                          {campaign.name || 'Unnamed Campaign'}
                         </CardTitle>
                         <p className="text-sm text-gray-500 mt-1">
                           Created: {new Date(campaign.createdAt).toLocaleDateString()}
@@ -649,6 +661,7 @@ export default function CampaignsPage() {
                     </div>
                   </CardContent>
                 </Card>
+                )
               ))
             ) : (
               <div className="text-center py-8">

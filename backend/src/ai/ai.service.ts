@@ -8,12 +8,20 @@ import {
   RecommendationPriority,
   RecommendationDto,
 } from '../customer/dto/recommendations.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { User } from '../user/schemas/user.schema';
+import { Lead } from '../sales-rep/schemas/lead.schema';
 
 @Injectable()
 export class aiService {
   private openai: OpenAI;
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(Lead.name) private leadModel: Model<Lead>,
+  ) {
     this.openai = new OpenAI({
       apiKey: this.configService.get<string>('OPENAI_API_KEY'),
     });
@@ -323,29 +331,153 @@ Important Guidelines:
   // Marketing Specialist AI methods
   async generateSegmentInsights(segmentData: any) {
     try {
-      const prompt = `Analyze the following customer segment and provide insights:
+      // If no specific customerIds are provided, analyze all customers
+      let customers, leads;
+      if (!segmentData.customerIds || segmentData.customerIds.length === 0) {
+        customers = await this.userModel.find({ role: 'customer' });
+        leads = await this.leadModel.find({ user: { $in: customers.map(c => c._id) } });
+      } else {
+        customers = await this.userModel.find({ _id: { $in: segmentData.customerIds } });
+        leads = await this.leadModel.find({ user: { $in: segmentData.customerIds } });
+      }
+
+      // Aggregate customer data for analysis
+      const customerData = {
+        demographics: {
+          ageDistribution: this.calculateAgeDistribution(customers),
+          genderDistribution: this.calculateGenderDistribution(customers),
+          locationDistribution: this.calculateLocationDistribution(customers),
+        },
+        behavior: {
+          purchasePatterns: this.analyzePurchasePatterns(leads),
+          engagementLevels: this.analyzeEngagementLevels(customers),
+          channelPreferences: this.analyzeChannelPreferences(leads),
+        },
+        metrics: {
+          averageLifetimeValue: this.calculateAverageLTV(leads),
+          churnRisk: this.calculateChurnRisk(customers, leads),
+          engagementScore: this.calculateEngagementScore(customers),
+        }
+      };
+
+      const prompt = `Analyze the following customer segment with real customer data and provide insights:
         Name: ${segmentData.name}
         Type: ${segmentData.type}
-        Criteria: ${JSON.stringify(segmentData.criteria)}
+        ${segmentData.customerIds?.length ? `Criteria: ${JSON.stringify(segmentData.criteria)}` : 'Analyzing entire customer base'}
+
+        Customer Data Analysis:
+        - Total Customers: ${customers.length}
+        - Demographics: ${JSON.stringify(customerData.demographics)}
+        - Behavior Patterns: ${JSON.stringify(customerData.behavior)}
+        - Key Metrics: ${JSON.stringify(customerData.metrics)}
 
         Please provide:
-        1. Key characteristics of this segment
-        2. Recommendations for targeting this segment
-        3. Predicted behavior patterns`;
+        1. Key characteristics of this segment based on actual customer data
+        2. Data-driven recommendations for targeting this segment
+        3. Predicted behavior patterns based on historical data
+        4. Specific action items to improve segment performance
+        5. Risk factors and opportunities`;
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4',
         messages: [{ role: 'user', content: prompt }],
-        max_tokens: 500,
+        max_tokens: 1000,
         temperature: 0.7,
       });
 
       const insights = response.choices[0].message.content;
-      return this.parseSegmentInsights(insights);
+      return this.parseSegmentInsights(insights, customerData);
     } catch (error) {
       console.error('Error generating segment insights:', error);
       throw error;
     }
+  }
+
+  private calculateAgeDistribution(customers: User[]): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    customers.forEach(customer => {
+      if (customer.demographics?.age) {
+        const ageGroup = Math.floor(customer.demographics.age / 10) * 10;
+        const ageRange = `${ageGroup}-${ageGroup + 9}`;
+        distribution[ageRange] = (distribution[ageRange] || 0) + 1;
+      }
+    });
+    return distribution;
+  }
+
+  private calculateGenderDistribution(customers: User[]): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    customers.forEach(customer => {
+      if (customer.demographics?.gender) {
+        distribution[customer.demographics.gender] = (distribution[customer.demographics.gender] || 0) + 1;
+      }
+    });
+    return distribution;
+  }
+
+  private calculateLocationDistribution(customers: User[]): Record<string, number> {
+    const distribution: Record<string, number> = {};
+    customers.forEach(customer => {
+      if (customer.demographics?.location) {
+        distribution[customer.demographics.location] = (distribution[customer.demographics.location] || 0) + 1;
+      }
+    });
+    return distribution;
+  }
+
+  private analyzePurchasePatterns(leads: Lead[]): any {
+    // Implementation to analyze purchase patterns
+    return {
+      averageOrderValue: this.calculateAverageOrderValue(leads),
+      purchaseFrequency: this.calculatePurchaseFrequency(leads),
+      productPreferences: this.analyzeProductPreferences(leads),
+    };
+  }
+
+  private analyzeEngagementLevels(customers: User[]): any {
+    // Implementation to analyze engagement levels
+    return {
+      averageInteractions: this.calculateAverageInteractions(customers),
+      channelEngagement: this.analyzeChannelEngagement(customers),
+      responseRates: this.calculateResponseRates(customers),
+    };
+  }
+
+  private analyzeChannelPreferences(leads: Lead[]): any {
+    // Implementation to analyze channel preferences
+    return {
+      preferredChannels: this.calculatePreferredChannels(leads),
+      channelEffectiveness: this.analyzeChannelEffectiveness(leads),
+    };
+  }
+
+  private calculateAverageLTV(leads: Lead[]): number {
+    // Implementation to calculate average lifetime value
+    return leads.reduce((sum, lead) => sum + (lead.purchaseHistory?.lifetimeValue || 0), 0) / leads.length;
+  }
+
+  private calculateChurnRisk(customers: User[], leads: Lead[]): number {
+    // Implementation to calculate churn risk
+    // Consider factors like last interaction, purchase frequency, etc.
+    return 0; // Placeholder
+  }
+
+  private calculateEngagementScore(customers: User[]): number {
+    // Implementation to calculate engagement score
+    return customers.reduce((sum, customer) => sum + (customer.preferences?.length || 0), 0) / customers.length;
+  }
+
+  private parseSegmentInsights(insights: string, customerData: any) {
+    // Enhanced parsing to include real customer data metrics
+    return {
+      keyCharacteristics: this.extractKeyCharacteristics(insights),
+      recommendations: this.extractRecommendations(insights),
+      predictedBehavior: this.extractPredictedBehavior(insights),
+      metrics: customerData.metrics,
+      demographics: customerData.demographics,
+      behavior: customerData.behavior,
+      lastUpdated: new Date(),
+    };
   }
 
   async generateCampaignRecommendations(campaignData: any) {
@@ -408,21 +540,6 @@ Important Guidelines:
       console.error('Error analyzing sentiment:', error);
       throw error;
     }
-  }
-
-  private parseSegmentInsights(insights: string) {
-    const lines = insights.split('\n');
-    return {
-      keyCharacteristics: lines
-        .filter((line) => line.includes('characteristic'))
-        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
-      recommendations: lines
-        .filter((line) => line.includes('recommendation'))
-        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
-      predictedBehavior: lines
-        .filter((line) => line.includes('behavior'))
-        .map((line) => line.replace(/^[0-9]+\.\s*/, '')),
-    };
   }
 
   private parseCampaignRecommendations(recommendations: string) {
@@ -578,5 +695,91 @@ Important Guidelines:
         },
       };
     }
+  }
+
+  private calculateAverageOrderValue(leads: Lead[]): number {
+    return leads.reduce((sum, lead) => sum + (lead.purchaseHistory?.averageOrderValue || 0), 0) / leads.length;
+  }
+
+  private calculatePurchaseFrequency(leads: Lead[]): number {
+    return leads.reduce((sum, lead) => sum + (lead.purchaseHistory?.purchaseFrequency || 0), 0) / leads.length;
+  }
+
+  private analyzeProductPreferences(leads: Lead[]): Record<string, number> {
+    const preferences: Record<string, number> = {};
+    leads.forEach(lead => {
+      lead.purchaseHistory?.products.forEach(product => {
+        preferences[product] = (preferences[product] || 0) + 1;
+      });
+    });
+    return preferences;
+  }
+
+  private calculateAverageInteractions(customers: User[]): number {
+    return customers.reduce((sum, customer) => sum + (customer.interactionHistory?.length || 0), 0) / customers.length;
+  }
+
+  private analyzeChannelEngagement(customers: User[]): Record<string, number> {
+    const engagement: Record<string, number> = {};
+    customers.forEach(customer => {
+      customer.preferences?.forEach(pref => {
+        if (pref.category === 'channel') {
+          engagement[pref.value] = (engagement[pref.value] || 0) + 1;
+        }
+      });
+    });
+    return engagement;
+  }
+
+  private calculateResponseRates(customers: User[]): number {
+    // Implementation to calculate response rates based on interaction history
+    return customers.reduce((sum, customer) => {
+      const interactions = customer.interactionHistory?.length || 0;
+      const responses = customer.interactionHistory?.filter(i => i.includes('response')).length || 0;
+      return sum + (responses / interactions || 0);
+    }, 0) / customers.length;
+  }
+
+  private calculatePreferredChannels(leads: Lead[]): Record<string, number> {
+    const channels: Record<string, number> = {};
+    leads.forEach(lead => {
+      lead.channelHistory?.forEach(channel => {
+        channels[channel.channel] = (channels[channel.channel] || 0) + 1;
+      });
+    });
+    return channels;
+  }
+
+  private analyzeChannelEffectiveness(leads: Lead[]): Record<string, number> {
+    const effectiveness: Record<string, number> = {};
+    leads.forEach(lead => {
+      lead.channelHistory?.forEach(channel => {
+        if (channel.interactionType === 'conversion') {
+          effectiveness[channel.channel] = (effectiveness[channel.channel] || 0) + 1;
+        }
+      });
+    });
+    return effectiveness;
+  }
+
+  private extractKeyCharacteristics(insights: string): string[] {
+    const lines = insights.split('\n');
+    return lines
+      .filter(line => line.includes('characteristic') || line.includes('trait'))
+      .map(line => line.replace(/^[0-9]+\.\s*/, '').trim());
+  }
+
+  private extractRecommendations(insights: string): string[] {
+    const lines = insights.split('\n');
+    return lines
+      .filter(line => line.includes('recommendation') || line.includes('action'))
+      .map(line => line.replace(/^[0-9]+\.\s*/, '').trim());
+  }
+
+  private extractPredictedBehavior(insights: string): string[] {
+    const lines = insights.split('\n');
+    return lines
+      .filter(line => line.includes('behavior') || line.includes('pattern'))
+      .map(line => line.replace(/^[0-9]+\.\s*/, '').trim());
   }
 }

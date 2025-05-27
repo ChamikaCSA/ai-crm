@@ -41,7 +41,7 @@ export default function SettingsPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch(`/api/users/${user.id}/profile`, {
+      const response = await fetch(`/api/users/${user._id}/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -233,7 +233,7 @@ export default function SettingsPage() {
                     Add an extra layer of security to your account
                   </p>
                 </div>
-                <MfaSetupDialog userId={user.id} />
+                <MfaSetupDialog userId={user._id} />
               </div>
             </div>
             <div className="p-4 rounded-lg border border-[var(--border)] hover:border-[var(--border-hover)] transition-colors group bg-[var(--card)]/50 hover:bg-[var(--card)]/80">
@@ -247,7 +247,7 @@ export default function SettingsPage() {
                     Change your password
                   </p>
                 </div>
-                <ChangePasswordDialog userId={user.id} />
+                <ChangePasswordDialog userId={user._id} />
               </div>
             </div>
           </CardContent>
